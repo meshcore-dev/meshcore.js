@@ -1,6 +1,6 @@
 class Constants {
 
-    static SupportedCompanionProtocolVersion = 1;
+    static SupportedCompanionProtocolVersion = 3;
 
     static SerialFrameTypes = {
         Incoming: 0x3e, // ">"
@@ -71,6 +71,8 @@ class Constants {
         DeviceInfo: 13,
         PrivateKey: 14,
         Disabled: 15,
+        ContactMsgRecv3: 16,
+        ChannelMsgRecv3: 17,
         ChannelInfo: 18,
         SignStart: 19,
         Signature: 20,

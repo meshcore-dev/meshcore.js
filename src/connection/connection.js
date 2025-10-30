@@ -39,7 +39,7 @@ class Connection extends EventEmitter {
         data.writeByte(Constants.CommandCodes.AppStart);
         data.writeByte(1); // appVer
         data.writeBytes(new Uint8Array(6)); // reserved
-        data.writeString("test"); // appName
+        data.writeString("test client"); // appName
         await this.sendToRadioFrame(data.toBytes());
     }
 
@@ -333,6 +333,10 @@ class Connection extends EventEmitter {
         } else if(responseCode === Constants.ResponseCodes.ContactMsgRecv){
             this.onContactMsgRecvResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.ChannelMsgRecv){
+            this.onChannelMsgRecvResponse(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.ContactMsgRecv3){
+            this.onContactMsgRecvResponse(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.ChannelMsgRecv3){
             this.onChannelMsgRecvResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.ContactsStart){
             this.onContactsStartResponse(bufferReader);
@@ -635,23 +639,50 @@ class Connection extends EventEmitter {
     }
 
     onContactMsgRecvResponse(bufferReader) {
-        this.emit(Constants.ResponseCodes.ContactMsgRecv, {
+
+        if (Constants.SupportedCompanionProtocolVersion >= 3) {
+          this.emit(Constants.ResponseCodes.ContactMsgRecv3, {
+            snr: bufferReader.readByte() / 4.0,
+            reserved1: bufferReader.readByte(),
+            reserved2: bufferReader.readByte(),
             pubKeyPrefix: bufferReader.readBytes(6),
             pathLen: bufferReader.readByte(),
             txtType: bufferReader.readByte(),
             senderTimestamp: bufferReader.readUInt32LE(),
             text: bufferReader.readString(),
-        });
-    }
-
-    onChannelMsgRecvResponse(bufferReader) {
-        this.emit(Constants.ResponseCodes.ChannelMsgRecv, {
-            channelIdx: bufferReader.readInt8(), // reserved (0 for now, ie. 'public')
-            pathLen: bufferReader.readByte(), // 0xFF if was sent direct, otherwise hop count for flood-mode
+          });
+        } else {
+          this.emit(Constants.ResponseCodes.ContactMsgRecv, {
+            pubKeyPrefix: bufferReader.readBytes(6),
+            pathLen: bufferReader.readByte(),
             txtType: bufferReader.readByte(),
             senderTimestamp: bufferReader.readUInt32LE(),
             text: bufferReader.readString(),
-        });
+          });
+        }        
+    }
+
+    onChannelMsgRecvResponse(bufferReader) {
+        if (Constants.SupportedCompanionProtocolVersion >= 3) {
+            this.emit(Constants.ResponseCodes.ChannelMsgRecv3, {
+                snr: bufferReader.readByte() / 4.0,
+                reserved1: bufferReader.readByte(),
+                reserved2: bufferReader.readByte(),
+                channelIdx: bufferReader.readInt8(), // reserved (0 for now, ie. 'public')
+                pathLen: bufferReader.readByte(), // 0xFF if was sent direct, otherwise hop count for flood-mode
+                txtType: bufferReader.readByte(),
+                senderTimestamp: bufferReader.readUInt32LE(),
+                text: bufferReader.readString(),
+            });
+        } else {
+            this.emit(Constants.ResponseCodes.ChannelMsgRecv, {
+              channelIdx: bufferReader.readInt8(), // reserved (0 for now, ie. 'public')
+              pathLen: bufferReader.readByte(), // 0xFF if was sent direct, otherwise hop count for flood-mode
+              txtType: bufferReader.readByte(),
+              senderTimestamp: bufferReader.readUInt32LE(),
+              text: bufferReader.readString(),
+            });
+        }
     }
 
     getSelfInfo(timeoutMillis = null) {
@@ -963,6 +994,8 @@ class Connection extends EventEmitter {
             const onContactMessageReceived = (message) => {
                 this.off(Constants.ResponseCodes.ContactMsgRecv, onContactMessageReceived);
                 this.off(Constants.ResponseCodes.ChannelMsgRecv, onChannelMessageReceived);
+                this.off(Constants.ResponseCodes.ContactMsgRecv3, onContactMessageReceived);
+                this.off(Constants.ResponseCodes.ChannelMsgRecv3, onChannelMessageReceived);
                 this.off(Constants.ResponseCodes.NoMoreMessages, onNoMoreMessagesReceived);
                 resolve({
                     contactMessage: message,
@@ -973,6 +1006,8 @@ class Connection extends EventEmitter {
             const onChannelMessageReceived = (message) => {
                 this.off(Constants.ResponseCodes.ContactMsgRecv, onContactMessageReceived);
                 this.off(Constants.ResponseCodes.ChannelMsgRecv, onChannelMessageReceived);
+                this.off(Constants.ResponseCodes.ContactMsgRecv3, onContactMessageReceived);
+                this.off(Constants.ResponseCodes.ChannelMsgRecv3, onChannelMessageReceived);
                 this.off(Constants.ResponseCodes.NoMoreMessages, onNoMoreMessagesReceived);
                 resolve({
                     channelMessage: message,
@@ -983,6 +1018,8 @@ class Connection extends EventEmitter {
             const onNoMoreMessagesReceived = () => {
                 this.off(Constants.ResponseCodes.ContactMsgRecv, onContactMessageReceived);
                 this.off(Constants.ResponseCodes.ChannelMsgRecv, onChannelMessageReceived);
+                this.off(Constants.ResponseCodes.ContactMsgRecv3, onContactMessageReceived);
+                this.off(Constants.ResponseCodes.ChannelMsgRecv3, onChannelMessageReceived);
                 this.off(Constants.ResponseCodes.NoMoreMessages, onNoMoreMessagesReceived);
                 resolve(null);
             }
@@ -990,6 +1027,8 @@ class Connection extends EventEmitter {
             // listen for events
             this.once(Constants.ResponseCodes.ContactMsgRecv, onContactMessageReceived);
             this.once(Constants.ResponseCodes.ChannelMsgRecv, onChannelMessageReceived);
+            this.once(Constants.ResponseCodes.ContactMsgRecv3, onContactMessageReceived);
+            this.once(Constants.ResponseCodes.ChannelMsgRecv3, onChannelMessageReceived);
             this.once(Constants.ResponseCodes.NoMoreMessages, onNoMoreMessagesReceived);
 
             // sync next message from device

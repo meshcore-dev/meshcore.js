@@ -38,6 +38,9 @@
             <button v-if="!connection" @click="askForBleDevice" class="border border-gray-500 px-2 bg-gray-100 hover:bg-gray-200 rounded">
                 Connect (BLE)
             </button>
+            <button v-if="!connection" @click="askForWebSocketDevice" class="border border-gray-500 px-2 bg-gray-100 hover:bg-gray-200 rounded">
+              Connect (WebSocket)
+          </button>
             <button v-if="connection" @click="disconnect" class="border border-gray-500 px-2 bg-gray-100 hover:bg-gray-200 rounded">
                 Disconnect
             </button>
@@ -55,7 +58,7 @@
 
         <!-- actions -->
         <div class="border bg-gray-50 rounded shadow">
-            <div class="p-3 space-x-1">
+            <div class="p-3 space-x-1 space-y-1">
                 <button @click="getSelfInfo" class="border border-gray-500 px-2 bg-gray-100 hover:bg-gray-200 rounded">
                     AppStart
                 </button>
@@ -198,6 +201,7 @@
     import Constants from "./src/constants.js";
     import WebSerialConnection from "./src/connection/web_serial_connection.js";
     import WebBleConnection from "./src/connection/web_ble_connection.js";
+    import WebSocketConnection from "./src/connection/websocket_connection.js";
     import BufferUtils from "./src/buffer_utils.js";
     Vue.createApp({
         data() {
@@ -227,6 +231,11 @@
                 this.connection.on("disconnected", () => this.onDisconnected());
                 // this.connection.on("tx", (data) => console.log("tx", data));
                 // this.connection.on("rx", (data) => console.log("rx", data));
+            },
+            async askForWebSocketDevice() {
+                this.connection = await WebSocketConnection.open();
+                this.connection.on("connected", () => this.onConnected());
+                this.connection.on("disconnected", () => this.onDisconnected());
             },
             async disconnect() {
                 if(this.connection){
@@ -390,7 +399,7 @@
                 console.log("syncNextMessage", message);
 
                 // check if contact message
-                if(message.contactMessage){
+                if(message!= null && message.contactMessage){
 
                     // check if from cli contact
                     if(this.cliContact && BufferUtils.areBuffersEqual(message.contactMessage.pubKeyPrefix, this.cliContact.publicKey.subarray(0, 6))){

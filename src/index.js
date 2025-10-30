@@ -4,6 +4,7 @@ import SerialConnection from "./connection/serial_connection.js";
 import NodeJSSerialConnection from "./connection/nodejs_serial_connection.js";
 import WebSerialConnection from "./connection/web_serial_connection.js";
 import TCPConnection from "./connection/tcp_connection.js";
+import WebSocketConnection from "./connection/websocket_connection.js";
 import Constants from "./constants.js";
 import Advert from "./advert.js";
 import Packet from "./packet.js";
@@ -17,6 +18,7 @@ export {
     NodeJSSerialConnection,
     WebSerialConnection,
     TCPConnection,
+    WebSocketConnection,
     Constants,
     Advert,
     Packet,
