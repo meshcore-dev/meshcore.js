@@ -5,6 +5,8 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
+    "prettier": "prettier --check src",
+    "prettier-write": "prettier --write src",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Liam Cottle <liam@liamcottle.com>",
@@ -12,5 +14,8 @@
   "dependencies": {
     "@noble/curves": "^1.8.1",
     "serialport": "^13.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
   }
 }
