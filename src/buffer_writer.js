@@ -42,6 +42,14 @@ class BufferWriter {
         this.writeBytes(bytes);
     }
 
+    // not little-endian because a single byte has no ordering
+    writeInt8(num) {
+        const bytes = new Uint8Array(1);
+        const view = new DataView(bytes.buffer);
+        view.setInt8(0, num);
+        this.writeBytes(bytes);
+    }
+
     writeString(string) {
         this.writeBytes(new TextEncoder().encode(string));
     }

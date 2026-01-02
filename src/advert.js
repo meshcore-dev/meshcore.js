@@ -1,17 +1,8 @@
 import BufferReader from "./buffer_reader.js";
 import BufferWriter from "./buffer_writer.js";
+import Constants from "./constants.js";
 
 class Advert {
-
-    static ADV_TYPE_NONE = 0;
-    static ADV_TYPE_CHAT = 1;
-    static ADV_TYPE_REPEATER = 2;
-    static ADV_TYPE_ROOM = 3;
-
-    static ADV_LATLON_MASK = 0x10;
-    static ADV_BATTERY_MASK = 0x20;
-    static ADV_TEMPERATURE_MASK = 0x40;
-    static ADV_NAME_MASK = 0x80;
 
     constructor(publicKey, timestamp, signature, appData) {
         this.publicKey = publicKey;
@@ -45,10 +36,10 @@ class Advert {
 
     getTypeString() {
         const type = this.getType();
-        if(type === Advert.ADV_TYPE_NONE) return "NONE";
-        if(type === Advert.ADV_TYPE_CHAT) return "CHAT";
-        if(type === Advert.ADV_TYPE_REPEATER) return "REPEATER";
-        if(type === Advert.ADV_TYPE_ROOM) return "ROOM";
+        if(type === Constants.AdvType.None) return "NONE";
+        if(type === Constants.AdvType.Chat) return "CHAT";
+        if(type === Constants.AdvType.Repeater) return "REPEATER";
+        if(type === Constants.AdvType.Room) return "ROOM";
         return null;
     }
 
@@ -76,14 +67,14 @@ class Advert {
         // parse lat lon
         var lat = null;
         var lon = null;
-        if(flags & Advert.ADV_LATLON_MASK){
+        if(flags & Constants.AdvertFlags.LatLon){
             lat = bufferReader.readInt32LE();
             lon = bufferReader.readInt32LE();
         }
 
         // parse name (remainder of app data)
         var name = null;
-        if(flags & Advert.ADV_NAME_MASK){
+        if(flags & Constants.AdvertFlags.Name){
             name = bufferReader.readString();
         }
 
