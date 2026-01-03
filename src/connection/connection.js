@@ -106,7 +106,7 @@ class Connection extends EventEmitter {
         data.writeBytes(publicKey);
         data.writeByte(type);
         data.writeByte(flags);
-        data.writeByte(outPathLen); // todo writeInt8
+        data.writeInt8(outPathLen);
         data.writeBytes(outPath); // 64 bytes
         data.writeCString(advName, 32); // 32 bytes
         data.writeUInt32LE(lastAdvert);

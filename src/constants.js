@@ -126,6 +126,13 @@ class Constants {
         GetNeighbours: 0x06, // #define REQ_TYPE_GET_NEIGHBOURS 0x06
     }
 
+    static AdvertFlags = {
+        LatLon: 0x10,
+        Battery: 0x20,
+        Temperature: 0x40,
+        Name: 0x80,
+    }
+
 }
 
 export default Constants;
