@@ -42,8 +42,7 @@ describe('SelfInfo Response Parsing', () => {
         assert.strictEqual(result.type, 1);
         assert.strictEqual(result.txPower, 20);
         assert.strictEqual(result.maxTxPower, 30);
-        assert.strictEqual(result.publicKey.length, 32);
-        assert.strictEqual(result.publicKey[0], 0xAB);
+        assert.deepStrictEqual(result.publicKey, new Uint8Array(32).fill(0xAB));
         assert.strictEqual(result.advLat, 12345678);
         assert.strictEqual(result.advLon, -87654321);
         assert.strictEqual(result.manualAddContacts, 1);
@@ -264,8 +263,7 @@ describe('NewAdvert Push Parsing', () => {
 
         const result = await resultPromise;
 
-        assert.strictEqual(result.publicKey.length, 32);
-        assert.strictEqual(result.publicKey[0], 0xEF);
+        assert.deepStrictEqual(result.publicKey, new Uint8Array(32).fill(0xEF));
         assert.strictEqual(result.type, 1);
         assert.strictEqual(result.flags, 0x02);
         assert.strictEqual(result.outPathLen, 2);
