@@ -21,9 +21,11 @@ It can also be used in NodeJS to connect to MeshCore Companion devices over TCP/
 npm install @liamcottle/meshcore.js
 ```
 
-## Simple Example
+## Simple Examples
 
-```
+### Enumerate Contacts (Node.js)
+
+```javascript
 import { TCPConnection, NodeJSSerialConnection } from "@liamcottle/meshcore.js";
 
 // serial connections are supported by "companion_radio_usb" firmware
@@ -51,6 +53,34 @@ connection.on("connected", async () => {
 
 // connect to meshcore device
 await connection.connect();
+```
+
+### Enumerate Contacts (Browser)
+
+```html
+<button id="connect-serial">Connect via Serial</button>
+
+<script type="module">
+import { WebBleConnection, WebSerialConnection } from "@liamcottle/meshcore.js";
+
+// wait until connected
+async function onConnected(connection) {
+
+    // we are now connected
+    console.log("connected!");
+
+    // log contacts
+    const contacts = await connection.getContacts();
+    for (const contact of contacts) {
+        console.log(`Contact: ${contact.advName}`);
+    }
+}
+
+document.getElementById("connect-serial").addEventListener("click", async () => {
+    const connection = await WebSerialConnection.open();
+    connection.on("connected", () => onConnected(connection));
+});
+</script>
 ```
 
 ## Examples
