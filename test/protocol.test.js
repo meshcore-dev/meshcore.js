@@ -82,8 +82,7 @@ describe('Contact Response Parsing', () => {
 
         const result = await resultPromise;
 
-        assert.strictEqual(result.publicKey.length, 32);
-        assert.strictEqual(result.publicKey[0], 0xCD);
+        assert.deepStrictEqual(result.publicKey, new Uint8Array(32).fill(0xCD));
         assert.strictEqual(result.type, 2);
         assert.strictEqual(result.flags, 0x01);
         assert.strictEqual(result.outPathLen, 3);
