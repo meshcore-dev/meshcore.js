@@ -110,8 +110,8 @@ class Connection extends EventEmitter {
         data.writeBytes(outPath); // 64 bytes
         data.writeCString(advName, 32); // 32 bytes
         data.writeUInt32LE(lastAdvert);
-        data.writeUInt32LE(advLat);
-        data.writeUInt32LE(advLon);
+        data.writeInt32LE(advLat);
+        data.writeInt32LE(advLon);
         await this.sendToRadioFrame(data.toBytes());
     }
 
@@ -485,8 +485,8 @@ class Connection extends EventEmitter {
             outPath: bufferReader.readBytes(64),
             advName: bufferReader.readCString(32),
             lastAdvert: bufferReader.readUInt32LE(),
-            advLat: bufferReader.readUInt32LE(),
-            advLon: bufferReader.readUInt32LE(),
+            advLat: bufferReader.readInt32LE(),
+            advLon: bufferReader.readInt32LE(),
             lastMod: bufferReader.readUInt32LE(),
         });
     }
@@ -519,8 +519,8 @@ class Connection extends EventEmitter {
             outPath: bufferReader.readBytes(64),
             advName: bufferReader.readCString(32),
             lastAdvert: bufferReader.readUInt32LE(),
-            advLat: bufferReader.readUInt32LE(),
-            advLon: bufferReader.readUInt32LE(),
+            advLat: bufferReader.readInt32LE(),
+            advLon: bufferReader.readInt32LE(),
             lastMod: bufferReader.readUInt32LE(),
         });
     }
