@@ -16,7 +16,9 @@ class WebSerialConnection extends SerialConnection {
             this.onDisconnected();
         });
 
-        // fire connected callback after constructor has returned
+        // wait to fire connected event after the caller has a chance to set up handlers
+        // by calling setTimeout(..., 0), we wait for the next tick of the JavaScript event
+        // loop.
         setTimeout(async () => {
             await this.onConnected();
         }, 0);
