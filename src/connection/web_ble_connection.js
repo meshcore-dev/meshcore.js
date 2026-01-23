@@ -9,7 +9,6 @@ class WebBleConnection extends Connection {
         this.gattServer = null;
         this.rxCharacteristic = null;
         this.txCharacteristic = null;
-        this.init();
     }
 
     static async open() {
@@ -36,8 +35,11 @@ class WebBleConnection extends Connection {
             return null;
         }
 
-        return new WebBleConnection(device);
+        // create connection and initialize it
+        const connection = new WebBleConnection(device);
+        await connection.init();
 
+        return connection;
     }
 
     async init() {
@@ -71,8 +73,12 @@ class WebBleConnection extends Connection {
             this.onFrameReceived(frame);
         });
 
-        // fire connected event
-        await this.onConnected();
+        // wait to fire connected event after the caller has a chance to set up handlers
+        // by calling setTimeout(..., 0), we wait for the next tick of the JavaScript event
+        // loop.
+        setTimeout(async () => {
+            await this.onConnected();
+        }, 0);
 
     }
 
