@@ -118,17 +118,15 @@ declare module '@liamcottle/meshcore.js' {
 
   export class Packet {
     constructor(data: Buffer);
-    // Add packet methods as needed
   }
 
   export class BufferUtils {
     static xor(a: Buffer, b: Buffer): Buffer;
     static concat(...buffers: Buffer[]): Buffer;
-    // Add other utility methods as needed
   }
 
   export class CayenneLpp {
-    // Add CayenneLpp methods as needed
+    constructor();
   }
 }
 
