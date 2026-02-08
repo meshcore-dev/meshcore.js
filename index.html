@@ -195,10 +195,12 @@
 </div>
 
 <script type="module">
-    import Constants from "./src/constants.js";
-    import WebSerialConnection from "./src/connection/web_serial_connection.js";
-    import WebBleConnection from "./src/connection/web_ble_connection.js";
-    import BufferUtils from "./src/buffer_utils.js";
+    import {
+        Constants,
+        WebSerialConnection,
+        WebBleConnection,
+        BufferUtils,
+    } from "./src/browser.js";
     Vue.createApp({
         data() {
             return {
