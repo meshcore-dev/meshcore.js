@@ -9,8 +9,8 @@ class Advert {
     static ADV_TYPE_ROOM = 3;
 
     static ADV_LATLON_MASK = 0x10;
-    static ADV_BATTERY_MASK = 0x20;
-    static ADV_TEMPERATURE_MASK = 0x40;
+    static ADV_FEAT1_MASK = 0x20;
+    static ADV_FEAT2_MASK = 0x40;
     static ADV_NAME_MASK = 0x80;
 
     constructor(publicKey, timestamp, signature, appData) {
@@ -81,6 +81,18 @@ class Advert {
             lon = bufferReader.readInt32LE();
         }
 
+        // parse feat1
+        var feat1 = null;
+        if(flags & Advert.ADV_FEAT1_MASK){
+            feat1 = bufferReader.readUInt16LE();
+        }
+
+        // parse feat2
+        var feat2 = null;
+        if(flags & Advert.ADV_FEAT2_MASK){
+            feat2 = bufferReader.readUInt16LE();
+        }
+
         // parse name (remainder of app data)
         var name = null;
         if(flags & Advert.ADV_NAME_MASK){
@@ -92,6 +104,8 @@ class Advert {
             lat: lat,
             lon: lon,
             name: name,
+            feat1: feat1,
+            feat2: feat2,
         };
 
     }
