@@ -28,6 +28,7 @@ class TCPConnection extends Connection {
         // handle errors
         this.socket.on('error', (error) => {
             console.error('Connection Error', error);
+            this.emit("error", error);
         });
 
         // handle socket close
