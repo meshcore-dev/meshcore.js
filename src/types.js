@@ -153,7 +153,7 @@
 
 /**
  * @typedef {object} AdvertParsedData
- * @property {string | null} type
+ * @property {"NONE" | "CHAT" | "REPEATER" | "ROOM" | null} type
  * @property {number | null} lat
  * @property {number | null} lon
  * @property {string | null} name

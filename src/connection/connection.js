@@ -275,6 +275,8 @@ class Connection extends EventEmitter {
     }
 
     /**
+     * Provide a public key to export that contact.
+     * Not providing a public key will export local identity as a contact instead.
      * @param {Uint8Array | null} [pubKey]
      * @returns {Promise<void>}
      */
@@ -862,84 +864,6 @@ class Connection extends EventEmitter {
     }
 
     // --- High-level API methods ---
-
-    /**
-     * @overload
-     * @param {"connected"} event
-     * @param {() => void} callback
-     * @returns {void}
-     */
-    /**
-     * @overload
-     * @param {"disconnected"} event
-     * @param {() => void} callback
-     * @returns {void}
-     */
-    /**
-     * @overload
-     * @param {number} event
-     * @param {(data: any) => void} callback
-     * @returns {void}
-     */
-    /**
-     * @param {string | number} event
-     * @param {Function} callback
-     */
-    on(event, callback) {
-        super.on(event, callback);
-    }
-
-    /**
-     * @overload
-     * @param {"connected"} event
-     * @param {() => void} callback
-     * @returns {void}
-     */
-    /**
-     * @overload
-     * @param {"disconnected"} event
-     * @param {() => void} callback
-     * @returns {void}
-     */
-    /**
-     * @overload
-     * @param {number} event
-     * @param {(data: any) => void} callback
-     * @returns {void}
-     */
-    /**
-     * @param {string | number} event
-     * @param {Function} callback
-     */
-    once(event, callback) {
-        super.once(event, callback);
-    }
-
-    /**
-     * @overload
-     * @param {"connected"} event
-     * @param {() => void} callback
-     * @returns {void}
-     */
-    /**
-     * @overload
-     * @param {"disconnected"} event
-     * @param {() => void} callback
-     * @returns {void}
-     */
-    /**
-     * @overload
-     * @param {number} event
-     * @param {(data: any) => void} callback
-     * @returns {void}
-     */
-    /**
-     * @param {string | number} event
-     * @param {Function} callback
-     */
-    off(event, callback) {
-        super.off(event, callback);
-    }
 
     /**
      * @param {Milliseconds | null} [timeoutMillis]
@@ -2614,6 +2538,9 @@ class Connection extends EventEmitter {
     }
 
     /**
+     * REQ_TYPE_GET_NEIGHBOURS from Repeater role.
+     * Repeater must be running firmware v1.9.0+.
+     * @see https://github.com/meshcore-dev/MeshCore/pull/833
      * @param {Uint8Array} publicKey
      * @param {number} [count]
      * @param {number} [offset]

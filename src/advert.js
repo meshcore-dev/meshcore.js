@@ -58,7 +58,7 @@ class Advert {
         return flags & 0x0F;
     }
 
-    /** @returns {string | null} */
+    /** @returns {"NONE" | "CHAT" | "REPEATER" | "ROOM" | null} */
     getTypeString() {
         const type = this.getType();
         if(type === Advert.ADV_TYPE_NONE) return "NONE";
