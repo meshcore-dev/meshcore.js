@@ -3,13 +3,15 @@ import SerialConnection from "./serial_connection.js";
 class NodeJSSerialConnection extends SerialConnection {
 
     /**
-     * @param path serial port to connect to, e.g: "/dev/ttyACM0" or "/dev/cu.usbmodem14401"
+     * @param {string} path serial port to connect to, e.g: "/dev/ttyACM0" or "/dev/cu.usbmodem14401"
      */
     constructor(path) {
         super();
+        /** @type {string} */
         this.serialPortPath = path;
     }
 
+    /** @returns {Promise<void>} */
     async connect() {
 
         // note: serialport module is only available in NodeJS, you shouldn't use NodeJSSerialConnection from a web browser
@@ -43,6 +45,7 @@ class NodeJSSerialConnection extends SerialConnection {
 
     }
 
+    /** @returns {Promise<void>} */
     async close() {
         try {
             await this.serialPort.close();
@@ -51,6 +54,10 @@ class NodeJSSerialConnection extends SerialConnection {
         }
     }
 
+    /**
+     * @param {Uint8Array} bytes
+     * @returns {Promise<void>}
+     */
     /* override */ async write(bytes) {
         this.serialPort.write(bytes);
     }

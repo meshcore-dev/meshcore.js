@@ -7,16 +7,26 @@ class SerialConnection extends Connection {
 
     constructor() {
         super();
+        /** @type {number[]} */
         this.readBuffer = [];
         if(this.constructor === SerialConnection){
             throw new Error("SerialConnection is an abstract class and can't be instantiated.");
         }
     }
 
+    /**
+     * @param {Uint8Array} bytes
+     * @returns {Promise<void>}
+     */
     async write(bytes) {
         throw new Error("Not Implemented: write must be implemented by SerialConnection sub class.");
     }
 
+    /**
+     * @param {number} frameType
+     * @param {Uint8Array} frameData
+     * @returns {Promise<void>}
+     */
     async writeFrame(frameType, frameData) {
 
         // create frame
@@ -34,12 +44,20 @@ class SerialConnection extends Connection {
 
     }
 
+    /**
+     * @param {Uint8Array} data
+     * @returns {Promise<void>}
+     */
     async sendToRadioFrame(data) {
         // write "app to radio" frame 0x3c "<"
         this.emit("tx", data);
         await this.writeFrame(0x3c, data);
     }
 
+    /**
+     * @param {Uint8Array | number[]} value
+     * @returns {Promise<void>}
+     */
     async onDataReceived(value) {
 
         // append received bytes to read buffer

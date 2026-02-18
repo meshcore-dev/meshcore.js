@@ -1,6 +1,8 @@
 import BufferReader from "./buffer_reader.js";
 import BufferWriter from "./buffer_writer.js";
 
+/** @typedef {import("./types.js").AdvertParsedData} AdvertParsedData */
+
 class Advert {
 
     static ADV_TYPE_NONE = 0;
@@ -13,14 +15,25 @@ class Advert {
     static ADV_FEAT2_MASK = 0x40;
     static ADV_NAME_MASK = 0x80;
 
+    /**
+     * @param {Uint8Array} publicKey
+     * @param {number} timestamp
+     * @param {Uint8Array} signature
+     * @param {Uint8Array} appData
+     */
     constructor(publicKey, timestamp, signature, appData) {
         this.publicKey = publicKey;
         this.timestamp = timestamp;
         this.signature = signature;
         this.appData = appData;
+        /** @type {AdvertParsedData} */
         this.parsed = this.parseAppData();
     }
 
+    /**
+     * @param {Uint8Array} bytes
+     * @returns {Advert}
+     */
     static fromBytes(bytes) {
 
         // read bytes
@@ -34,15 +47,18 @@ class Advert {
 
     }
 
+    /** @returns {number} */
     getFlags() {
         return this.appData[0];
     }
 
+    /** @returns {number} */
     getType() {
         const flags = this.getFlags();
         return flags & 0x0F;
     }
 
+    /** @returns {string | null} */
     getTypeString() {
         const type = this.getType();
         if(type === Advert.ADV_TYPE_NONE) return "NONE";
@@ -52,6 +68,7 @@ class Advert {
         return null;
     }
 
+    /** @returns {Promise<boolean>} */
     async isVerified() {
 
         const { ed25519 } = await import("@noble/curves/ed25519");
@@ -67,6 +84,7 @@ class Advert {
 
     }
 
+    /** @returns {AdvertParsedData} */
     parseAppData() {
 
         // read app data

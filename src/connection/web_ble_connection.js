@@ -3,24 +3,31 @@ import Connection from "./connection.js";
 
 class WebBleConnection extends Connection {
 
+    /** @param {any} bleDevice */
     constructor(bleDevice) {
         super();
         this.bleDevice = bleDevice;
+        /** @type {any} */
         this.gattServer = null;
+        /** @type {any} */
         this.rxCharacteristic = null;
+        /** @type {any} */
         this.txCharacteristic = null;
         this.init();
     }
 
+    /** @returns {Promise<WebBleConnection | null | undefined>} */
     static async open() {
 
         // ensure browser supports web bluetooth
+        // @ts-ignore - Web Bluetooth API
         if(!navigator.bluetooth){
             alert("Web Bluetooth is not supported in this browser");
             return;
         }
 
         // ask user to select device
+        // @ts-ignore - Web Bluetooth API
         const device = await navigator.bluetooth.requestDevice({
             filters: [
                 {
@@ -76,6 +83,7 @@ class WebBleConnection extends Connection {
 
     }
 
+    /** @returns {Promise<void>} */
     async close() {
         try {
             this.gattServer?.disconnect();
@@ -85,6 +93,10 @@ class WebBleConnection extends Connection {
         }
     }
 
+    /**
+     * @param {Uint8Array} bytes
+     * @returns {Promise<void>}
+     */
     async write(bytes) {
         try {
             // fixme: NetworkError: GATT operation already in progress.
@@ -96,6 +108,10 @@ class WebBleConnection extends Connection {
         }
     }
 
+    /**
+     * @param {Uint8Array} frame
+     * @returns {Promise<void>}
+     */
     async sendToRadioFrame(frame) {
         this.emit("tx", frame);
         await this.write(frame);

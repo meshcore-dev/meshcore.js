@@ -10,6 +10,8 @@ import Packet from "./packet.js";
 import BufferUtils from "./buffer_utils.js";
 import CayenneLpp from "./cayenne_lpp.js";
 
+export * from "./types.js";
+
 export {
     Connection,
     WebBleConnection,

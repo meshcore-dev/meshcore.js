@@ -27,8 +27,14 @@ class Packet {
     static PAYLOAD_TYPE_TRACE = 0x09;    // trace a path, collecting SNR for each hop
     static PAYLOAD_TYPE_RAW_CUSTOM = 0x0F;    // custom packet as raw bytes, for applications with custom encryption, payloads, etc
 
+    /**
+     * @param {number} header
+     * @param {Uint8Array} path
+     * @param {Uint8Array} payload
+     * @param {number | null} transportCode1
+     * @param {number | null} transportCode2
+     */
     constructor(header, path, payload, transportCode1, transportCode2) {
-
 
         this.header = header;
         this.path = path;
@@ -46,6 +52,10 @@ class Packet {
 
     }
 
+    /**
+     * @param {Uint8Array} bytes
+     * @returns {Packet}
+     */
     static fromBytes(bytes) {
 
         const bufferReader = new BufferReader(bytes);
@@ -71,10 +81,12 @@ class Packet {
 
     }
 
+    /** @returns {number} */
     getRouteType() {
         return this.header & Packet.PH_ROUTE_MASK;
     }
 
+    /** @returns {string | null} */
     getRouteTypeString() {
         switch(this.getRouteType()){
             case Packet.ROUTE_TYPE_FLOOD: return "FLOOD";
@@ -85,18 +97,22 @@ class Packet {
         }
     }
 
+    /** @returns {boolean} */
     isRouteFlood() {
         return this.getRouteType() === Packet.ROUTE_TYPE_FLOOD;
     }
 
+    /** @returns {boolean} */
     isRouteDirect() {
         return this.getRouteType() === Packet.ROUTE_TYPE_DIRECT;
     }
 
+    /** @returns {number} */
     getPayloadType() {
         return (this.header >> Packet.PH_TYPE_SHIFT) & Packet.PH_TYPE_MASK;
     }
 
+    /** @returns {string | null} */
     getPayloadTypeString() {
         switch(this.getPayloadType()){
             case Packet.PAYLOAD_TYPE_REQ: return "REQ";
@@ -114,6 +130,7 @@ class Packet {
         }
     }
 
+    /** @returns {number} */
     getPayloadVer() {
         return (this.header >> Packet.PH_VER_SHIFT) & Packet.PH_VER_MASK;
     }
@@ -122,6 +139,7 @@ class Packet {
         this.header = 0xFF;
     }
 
+    /** @returns {boolean} */
     isMarkedDoNotRetransmit() {
         return this.header === 0xFF;
     }
@@ -139,6 +157,7 @@ class Packet {
         }
     }
 
+    /** @returns {{ src: number, dest: number }} */
     parsePayloadTypePath() {
 
         // parse bytes
@@ -154,6 +173,7 @@ class Packet {
 
     }
 
+    /** @returns {{ src: number, dest: number, encrypted: Uint8Array }} */
     parsePayloadTypeReq() {
 
         // parse bytes
@@ -170,6 +190,7 @@ class Packet {
 
     }
 
+    /** @returns {{ src: number, dest: number }} */
     parsePayloadTypeResponse() {
 
         // parse bytes
@@ -185,6 +206,7 @@ class Packet {
 
     }
 
+    /** @returns {{ src: number, dest: number }} */
     parsePayloadTypeTxtMsg() {
 
         // parse bytes
@@ -200,12 +222,14 @@ class Packet {
 
     }
 
+    /** @returns {{ ack_code: Uint8Array }} */
     parsePayloadTypeAck() {
         return {
             ack_code: this.payload,
         };
     }
 
+    /** @returns {{ public_key: Uint8Array, timestamp: number, app_data: import("./types.js").AdvertParsedData }} */
     parsePayloadTypeAdvert() {
         const advert = Advert.fromBytes(this.payload);
         return {
@@ -215,6 +239,7 @@ class Packet {
         };
     }
 
+    /** @returns {{ src: Uint8Array, dest: number }} */
     parsePayloadTypeAnonReq() {
 
         // parse bytes

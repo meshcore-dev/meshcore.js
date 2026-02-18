@@ -2,6 +2,7 @@ import SerialConnection from "./serial_connection.js";
 
 class WebSerialConnection extends SerialConnection {
 
+    /** @param {any} serialPort */
     constructor(serialPort) {
 
         super();
@@ -23,15 +24,18 @@ class WebSerialConnection extends SerialConnection {
 
     }
 
+    /** @returns {Promise<WebSerialConnection | null>} */
     static async open() {
 
         // ensure browser supports web serial
+        // @ts-ignore - Web Serial API
         if(!navigator.serial){
             alert("Web Serial is not supported in this browser");
             return null;
         }
 
         // ask user to select device
+        // @ts-ignore - Web Serial API
         const serialPort = await navigator.serial.requestPort({
             filters: [],
         });
@@ -45,6 +49,7 @@ class WebSerialConnection extends SerialConnection {
 
     }
 
+    /** @returns {Promise<void>} */
     async close() {
 
         // release reader lock
@@ -63,6 +68,10 @@ class WebSerialConnection extends SerialConnection {
 
     }
 
+    /**
+     * @param {Uint8Array} bytes
+     * @returns {Promise<void>}
+     */
     /* override */ async write(bytes) {
         const writer = this.writable.getWriter();
         try {

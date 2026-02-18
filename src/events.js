@@ -1,9 +1,14 @@
 class EventEmitter {
 
     constructor() {
+        /** @type {Map<string | number, Function[]>} */
         this.eventListenersMap = new Map();
     }
 
+    /**
+     * @param {string | number} event
+     * @param {Function} callback
+     */
     on(event, callback) {
 
         // create list of listeners for event if it doesn't exist
@@ -16,6 +21,10 @@ class EventEmitter {
 
     }
 
+    /**
+     * @param {string | number} event
+     * @param {Function} callback
+     */
     off(event, callback) {
 
         // remove callback from listeners for this event
@@ -26,6 +35,10 @@ class EventEmitter {
 
     }
 
+    /**
+     * @param {string | number} event
+     * @param {Function} callback
+     */
     once(event, callback) {
 
         // internal callback to handle the event
@@ -44,6 +57,10 @@ class EventEmitter {
 
     }
 
+    /**
+     * @param {string | number} event
+     * @param {...any} data
+     */
     emit(event, ...data) {
 
         // invoke each listener for this event

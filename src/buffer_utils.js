@@ -1,21 +1,38 @@
 class BufferUtils {
 
+    /**
+     * @param {Uint8Array} uint8Array
+     * @returns {string}
+     */
     static bytesToHex(uint8Array) {
         return Array.from(uint8Array).map(byte => {
             return byte.toString(16).padStart(2, '0');
         }).join('');
     }
 
+    /**
+     * @param {string} hex
+     * @returns {Uint8Array}
+     */
     static hexToBytes(hex) {
         return Uint8Array.from(hex.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
     }
 
+    /**
+     * @param {string} base64
+     * @returns {Uint8Array}
+     */
     static base64ToBytes(base64) {
         return Uint8Array.from(atob(base64), (c) => {
             return c.charCodeAt(0);
         });
     }
 
+    /**
+     * @param {Uint8Array} byteArray1
+     * @param {Uint8Array} byteArray2
+     * @returns {boolean}
+     */
     static areBuffersEqual(byteArray1, byteArray2) {
 
         // ensure length is the same

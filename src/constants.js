@@ -1,3 +1,4 @@
+/** Constants used by the MeshCore companion protocol. */
 class Constants {
 
     static SupportedCompanionProtocolVersion = 1;

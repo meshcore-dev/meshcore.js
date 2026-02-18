@@ -3,9 +3,11 @@
   "version": "1.11.0",
   "description": "",
   "main": "src/index.js",
-  "types": "index.d.ts",
+  "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
+    "build:types": "tsc",
+    "prepublishOnly": "npm run build:types",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Liam Cottle <liam@liamcottle.com>",
@@ -13,5 +15,9 @@
   "dependencies": {
     "@noble/curves": "^1.8.1",
     "serialport": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "typescript": "^5.9.3"
   }
 }

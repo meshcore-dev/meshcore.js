@@ -6,6 +6,34 @@ import BufferUtils from "../buffer_utils.js";
 import Packet from "../packet.js";
 import RandomUtils from "../random_utils.js";
 
+/**
+ * @typedef {import("../types.js").SelfInfo} SelfInfo
+ * @typedef {import("../types.js").Contact} Contact
+ * @typedef {import("../types.js").ContactMessage} ContactMessage
+ * @typedef {import("../types.js").ChannelMessage} ChannelMessage
+ * @typedef {import("../types.js").ChannelInfo} ChannelInfo
+ * @typedef {import("../types.js").SentResponse} SentResponse
+ * @typedef {import("../types.js").DeviceInfo} DeviceInfo
+ * @typedef {import("../types.js").BatteryVoltageResponse} BatteryVoltageResponse
+ * @typedef {import("../types.js").ExportContactResponse} ExportContactResponse
+ * @typedef {import("../types.js").PrivateKeyResponse} PrivateKeyResponse
+ * @typedef {import("../types.js").RepeaterStats} RepeaterStats
+ * @typedef {import("../types.js").SyncMessageResult} SyncMessageResult
+ * @typedef {import("../types.js").NeighboursResult} NeighboursResult
+ * @typedef {import("../types.js").TraceDataResult} TraceDataResult
+ * @typedef {import("../types.js").EpochSeconds} EpochSeconds
+ * @typedef {import("../types.js").Milliseconds} Milliseconds
+ * @typedef {import("../types.js").TxtType} TxtType
+ * @typedef {import("../types.js").LoginSuccessPush} LoginSuccessPush
+ * @typedef {import("../types.js").StatusResponsePush} StatusResponsePush
+ * @typedef {import("../types.js").RawDataPush} RawDataPush
+ * @typedef {import("../types.js").SendConfirmedPush} SendConfirmedPush
+ * @typedef {import("../types.js").LogRxDataPush} LogRxDataPush
+ * @typedef {import("../types.js").TelemetryResponsePush} TelemetryResponsePush
+ * @typedef {import("../types.js").BinaryResponsePush} BinaryResponsePush
+ * @typedef {import("../types.js").NewAdvertPush} NewAdvertPush
+ */
+
 class Connection extends EventEmitter {
 
     async onConnected() {
@@ -26,14 +54,20 @@ class Connection extends EventEmitter {
         this.emit("disconnected");
     }
 
+    /** @returns {Promise<void>} */
     async close() {
         throw new Error("This method must be implemented by the subclass.");
     }
 
+    /**
+     * @param {Uint8Array} data
+     * @returns {Promise<void>}
+     */
     async sendToRadioFrame(data) {
         throw new Error("This method must be implemented by the subclass.");
     }
 
+    /** @returns {Promise<void>} */
     async sendCommandAppStart() {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.AppStart);
@@ -43,6 +77,14 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {TxtType} txtType
+     * @param {number} attempt
+     * @param {EpochSeconds} senderTimestamp
+     * @param {Uint8Array} pubKeyPrefix
+     * @param {string} text
+     * @returns {Promise<void>}
+     */
     async sendCommandSendTxtMsg(txtType, attempt, senderTimestamp, pubKeyPrefix, text) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SendTxtMsg);
@@ -54,6 +96,13 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {TxtType} txtType
+     * @param {number} channelIdx
+     * @param {EpochSeconds} senderTimestamp
+     * @param {string} text
+     * @returns {Promise<void>}
+     */
     async sendCommandSendChannelTxtMsg(txtType, channelIdx, senderTimestamp, text) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SendChannelTxtMsg);
@@ -64,6 +113,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {EpochSeconds} [since]
+     * @returns {Promise<void>}
+     */
     async sendCommandGetContacts(since) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.GetContacts);
@@ -73,12 +126,17 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /** @returns {Promise<void>} */
     async sendCommandGetDeviceTime() {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.GetDeviceTime);
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {EpochSeconds} epochSecs
+     * @returns {Promise<void>}
+     */
     async sendCommandSetDeviceTime(epochSecs) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SetDeviceTime);
@@ -86,6 +144,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {number} type
+     * @returns {Promise<void>}
+     */
     async sendCommandSendSelfAdvert(type) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SendSelfAdvert);
@@ -93,6 +155,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {string} name
+     * @returns {Promise<void>}
+     */
     async sendCommandSetAdvertName(name) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SetAdvertName);
@@ -100,6 +166,18 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {Uint8Array} publicKey
+     * @param {number} type
+     * @param {number} flags
+     * @param {number} outPathLen
+     * @param {Uint8Array} outPath
+     * @param {string} advName
+     * @param {EpochSeconds} lastAdvert
+     * @param {number} advLat
+     * @param {number} advLon
+     * @returns {Promise<void>}
+     */
     async sendCommandAddUpdateContact(publicKey, type, flags, outPathLen, outPath, advName, lastAdvert, advLat, advLon) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.AddUpdateContact);
@@ -115,12 +193,20 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /** @returns {Promise<void>} */
     async sendCommandSyncNextMessage() {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SyncNextMessage);
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {number} radioFreq
+     * @param {number} radioBw
+     * @param {number} radioSf
+     * @param {number} radioCr
+     * @returns {Promise<void>}
+     */
     async sendCommandSetRadioParams(radioFreq, radioBw, radioSf, radioCr) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SetRadioParams);
@@ -131,6 +217,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {number} txPower
+     * @returns {Promise<void>}
+     */
     async sendCommandSetTxPower(txPower) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SetTxPower);
@@ -138,6 +228,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {Uint8Array} pubKey
+     * @returns {Promise<void>}
+     */
     async sendCommandResetPath(pubKey) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.ResetPath);
@@ -145,6 +239,11 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {number} lat
+     * @param {number} lon
+     * @returns {Promise<void>}
+     */
     async sendCommandSetAdvertLatLon(lat, lon) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SetAdvertLatLon);
@@ -153,6 +252,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {Uint8Array} pubKey
+     * @returns {Promise<void>}
+     */
     async sendCommandRemoveContact(pubKey) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.RemoveContact);
@@ -160,6 +263,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {Uint8Array} pubKey
+     * @returns {Promise<void>}
+     */
     async sendCommandShareContact(pubKey) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.ShareContact);
@@ -167,8 +274,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
-    // provide a public key to export that contact
-    // not providing a public key will export local identity as a contact instead
+    /**
+     * @param {Uint8Array | null} [pubKey]
+     * @returns {Promise<void>}
+     */
     async sendCommandExportContact(pubKey = null) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.ExportContact);
@@ -178,6 +287,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {Uint8Array} advertPacketBytes
+     * @returns {Promise<void>}
+     */
     async sendCommandImportContact(advertPacketBytes) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.ImportContact);
@@ -185,6 +298,7 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /** @returns {Promise<void>} */
     async sendCommandReboot() {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.Reboot);
@@ -192,12 +306,17 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /** @returns {Promise<void>} */
     async sendCommandGetBatteryVoltage() {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.GetBatteryVoltage);
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {number} appTargetVer
+     * @returns {Promise<void>}
+     */
     async sendCommandDeviceQuery(appTargetVer) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.DeviceQuery);
@@ -205,12 +324,17 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /** @returns {Promise<void>} */
     async sendCommandExportPrivateKey() {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.ExportPrivateKey);
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {Uint8Array} privateKey
+     * @returns {Promise<void>}
+     */
     async sendCommandImportPrivateKey(privateKey) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.ImportPrivateKey);
@@ -218,6 +342,11 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {Uint8Array | any[]} path
+     * @param {Uint8Array} rawData
+     * @returns {Promise<void>}
+     */
     async sendCommandSendRawData(path, rawData) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SendRawData);
@@ -227,6 +356,11 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {Uint8Array} publicKey
+     * @param {string} password
+     * @returns {Promise<void>}
+     */
     async sendCommandSendLogin(publicKey, password) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SendLogin);
@@ -235,6 +369,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {Uint8Array} publicKey
+     * @returns {Promise<void>}
+     */
     async sendCommandSendStatusReq(publicKey) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SendStatusReq);
@@ -242,6 +380,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {Uint8Array} publicKey
+     * @returns {Promise<void>}
+     */
     async sendCommandSendTelemetryReq(publicKey) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SendTelemetryReq);
@@ -252,6 +394,11 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {Uint8Array} publicKey
+     * @param {Uint8Array} requestCodeAndParams
+     * @returns {Promise<void>}
+     */
     async sendCommandSendBinaryReq(publicKey, requestCodeAndParams) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SendBinaryReq);
@@ -260,6 +407,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {number} channelIdx
+     * @returns {Promise<void>}
+     */
     async sendCommandGetChannel(channelIdx) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.GetChannel);
@@ -267,6 +418,12 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {number} channelIdx
+     * @param {string} name
+     * @param {Uint8Array} secret
+     * @returns {Promise<void>}
+     */
     async sendCommandSetChannel(channelIdx, name, secret) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SetChannel);
@@ -276,12 +433,17 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /** @returns {Promise<void>} */
     async sendCommandSignStart() {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SignStart);
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {Uint8Array} dataToSign
+     * @returns {Promise<void>}
+     */
     async sendCommandSignData(dataToSign) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SignData);
@@ -289,12 +451,19 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /** @returns {Promise<void>} */
     async sendCommandSignFinish() {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SignFinish);
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {number} tag
+     * @param {number} auth
+     * @param {Uint8Array} path
+     * @returns {Promise<void>}
+     */
     async sendCommandSendTracePath(tag, auth, path) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SendTracePath);
@@ -305,6 +474,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {number} manualAddContacts
+     * @returns {Promise<void>}
+     */
     async sendCommandSetOtherParams(manualAddContacts) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SetOtherParams);
@@ -312,6 +485,9 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    /**
+     * @param {Uint8Array | number[]} frame
+     */
     onFrameReceived(frame) {
 
         // emit received frame
@@ -388,18 +564,21 @@ class Connection extends EventEmitter {
 
     }
 
+    /** @param {BufferReader} bufferReader */
     onAdvertPush(bufferReader) {
         this.emit(Constants.PushCodes.Advert, {
             publicKey: bufferReader.readBytes(32),
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onPathUpdatedPush(bufferReader) {
         this.emit(Constants.PushCodes.PathUpdated, {
             publicKey: bufferReader.readBytes(32),
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onSendConfirmedPush(bufferReader) {
         this.emit(Constants.PushCodes.SendConfirmed, {
             ackCode: bufferReader.readUInt32LE(),
@@ -407,12 +586,14 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onMsgWaitingPush(bufferReader) {
         this.emit(Constants.PushCodes.MsgWaiting, {
 
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onRawDataPush(bufferReader) {
         this.emit(Constants.PushCodes.RawData, {
             lastSnr: bufferReader.readInt8() / 4,
@@ -422,6 +603,7 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onLoginSuccessPush(bufferReader) {
         this.emit(Constants.PushCodes.LoginSuccess, {
             reserved: bufferReader.readByte(), // reserved
@@ -429,6 +611,7 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onStatusResponsePush(bufferReader) {
         this.emit(Constants.PushCodes.StatusResponse, {
             reserved: bufferReader.readByte(), // reserved
@@ -437,6 +620,7 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onLogRxDataPush(bufferReader) {
         this.emit(Constants.PushCodes.LogRxData, {
             lastSnr: bufferReader.readInt8() / 4,
@@ -445,6 +629,7 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onTelemetryResponsePush(bufferReader) {
         this.emit(Constants.PushCodes.TelemetryResponse, {
             reserved: bufferReader.readByte(), // reserved
@@ -453,6 +638,7 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onBinaryResponsePush(bufferReader) {
         this.emit(Constants.PushCodes.BinaryResponse, {
             reserved: bufferReader.readByte(), // reserved
@@ -461,6 +647,7 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onTraceDataPush(bufferReader) {
         const reserved = bufferReader.readByte();
         const pathLen = bufferReader.readUInt8();
@@ -476,6 +663,7 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onNewAdvertPush(bufferReader) {
         this.emit(Constants.PushCodes.NewAdvert, {
             publicKey: bufferReader.readBytes(32),
@@ -491,12 +679,14 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onOkResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.Ok, {
 
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onErrResponse(bufferReader) {
         const errCode = bufferReader.getRemainingBytesCount() > 0 ? bufferReader.readByte() : null;
         this.emit(Constants.ResponseCodes.Err, {
@@ -504,12 +694,14 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onContactsStartResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.ContactsStart, {
             count: bufferReader.readUInt32LE(),
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onContactResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.Contact, {
             publicKey: bufferReader.readBytes(32),
@@ -525,12 +717,14 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onEndOfContactsResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.EndOfContacts, {
             mostRecentLastmod: bufferReader.readUInt32LE(),
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onSentResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.Sent, {
             result: bufferReader.readInt8(),
@@ -539,18 +733,21 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onExportContactResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.ExportContact, {
             advertPacketBytes: bufferReader.readRemainingBytes(),
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onBatteryVoltageResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.BatteryVoltage, {
             batteryMilliVolts: bufferReader.readUInt16LE(),
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onDeviceInfoResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.DeviceInfo, {
             firmwareVer: bufferReader.readInt8(),
@@ -560,18 +757,21 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onPrivateKeyResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.PrivateKey, {
             privateKey: bufferReader.readBytes(64),
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onDisabledResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.Disabled, {
 
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onChannelInfoResponse(bufferReader) {
 
         const idx = bufferReader.readUInt8();
@@ -591,6 +791,7 @@ class Connection extends EventEmitter {
 
     }
 
+    /** @param {BufferReader} bufferReader */
     onSignStartResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.SignStart, {
             reserved: bufferReader.readByte(),
@@ -598,12 +799,14 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onSignatureResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.Signature, {
             signature: bufferReader.readBytes(64),
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onSelfInfoResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.SelfInfo, {
             type: bufferReader.readByte(),
@@ -622,18 +825,21 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onCurrTimeResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.CurrTime, {
             epochSecs: bufferReader.readUInt32LE(),
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onNoMoreMessagesResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.NoMoreMessages, {
 
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onContactMsgRecvResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.ContactMsgRecv, {
             pubKeyPrefix: bufferReader.readBytes(6),
@@ -644,6 +850,7 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @param {BufferReader} bufferReader */
     onChannelMsgRecvResponse(bufferReader) {
         this.emit(Constants.ResponseCodes.ChannelMsgRecv, {
             channelIdx: bufferReader.readInt8(), // reserved (0 for now, ie. 'public')
@@ -654,6 +861,90 @@ class Connection extends EventEmitter {
         });
     }
 
+    // --- High-level API methods ---
+
+    /**
+     * @overload
+     * @param {"connected"} event
+     * @param {() => void} callback
+     * @returns {void}
+     */
+    /**
+     * @overload
+     * @param {"disconnected"} event
+     * @param {() => void} callback
+     * @returns {void}
+     */
+    /**
+     * @overload
+     * @param {number} event
+     * @param {(data: any) => void} callback
+     * @returns {void}
+     */
+    /**
+     * @param {string | number} event
+     * @param {Function} callback
+     */
+    on(event, callback) {
+        super.on(event, callback);
+    }
+
+    /**
+     * @overload
+     * @param {"connected"} event
+     * @param {() => void} callback
+     * @returns {void}
+     */
+    /**
+     * @overload
+     * @param {"disconnected"} event
+     * @param {() => void} callback
+     * @returns {void}
+     */
+    /**
+     * @overload
+     * @param {number} event
+     * @param {(data: any) => void} callback
+     * @returns {void}
+     */
+    /**
+     * @param {string | number} event
+     * @param {Function} callback
+     */
+    once(event, callback) {
+        super.once(event, callback);
+    }
+
+    /**
+     * @overload
+     * @param {"connected"} event
+     * @param {() => void} callback
+     * @returns {void}
+     */
+    /**
+     * @overload
+     * @param {"disconnected"} event
+     * @param {() => void} callback
+     * @returns {void}
+     */
+    /**
+     * @overload
+     * @param {number} event
+     * @param {(data: any) => void} callback
+     * @returns {void}
+     */
+    /**
+     * @param {string | number} event
+     * @param {Function} callback
+     */
+    off(event, callback) {
+        super.off(event, callback);
+    }
+
+    /**
+     * @param {Milliseconds | null} [timeoutMillis]
+     * @returns {Promise<SelfInfo>}
+     */
     getSelfInfo(timeoutMillis = null) {
         return new Promise(async (resolve, reject) => {
 
@@ -673,6 +964,10 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {number} type
+     * @returns {Promise<void>}
+     */
     async sendAdvert(type) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -704,14 +999,20 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @returns {Promise<void>} */
     async sendFloodAdvert() {
         return await this.sendAdvert(Constants.SelfAdvertTypes.Flood);
     }
 
+    /** @returns {Promise<void>} */
     async sendZeroHopAdvert() {
         return await this.sendAdvert(Constants.SelfAdvertTypes.ZeroHop);
     }
 
+    /**
+     * @param {string} name
+     * @returns {Promise<void>}
+     */
     setAdvertName(name) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -743,6 +1044,11 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {number} latitude
+     * @param {number} longitude
+     * @returns {Promise<void>}
+     */
     setAdvertLatLong(latitude, longitude) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -774,6 +1080,10 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {number} txPower
+     * @returns {Promise<void>}
+     */
     setTxPower(txPower) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -805,6 +1115,13 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {number} radioFreq
+     * @param {number} radioBw
+     * @param {number} radioSf
+     * @param {number} radioCr
+     * @returns {Promise<void>}
+     */
     setRadioParams(radioFreq, radioBw, radioSf, radioCr) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -836,10 +1153,12 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @returns {Promise<Contact[]>} */
     getContacts() {
         return new Promise(async (resolve, reject) => {
 
             // add contacts we receive to a list
+            /** @type {Contact[]} */
             const contacts = [];
             const onContactReceived = (contact) => {
                 contacts.push(contact);
@@ -860,6 +1179,10 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {string} name
+     * @returns {Promise<Contact | undefined>}
+     */
     async findContactByName(name) {
 
         // get contacts
@@ -872,6 +1195,10 @@ class Connection extends EventEmitter {
 
     }
 
+    /**
+     * @param {Uint8Array} pubKeyPrefix
+     * @returns {Promise<Contact | undefined>}
+     */
     async findContactByPublicKeyPrefix(pubKeyPrefix) {
 
         // get contacts
@@ -885,6 +1212,12 @@ class Connection extends EventEmitter {
 
     }
 
+    /**
+     * @param {Uint8Array} contactPublicKey
+     * @param {string} text
+     * @param {TxtType} [type]
+     * @returns {Promise<SentResponse>}
+     */
     sendTextMessage(contactPublicKey, text, type) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -921,6 +1254,11 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {number} channelIdx
+     * @param {string} text
+     * @returns {Promise<void>}
+     */
     sendChannelTextMessage(channelIdx, text) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -956,6 +1294,7 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @returns {Promise<SyncMessageResult | null>} */
     syncNextMessage() {
         return new Promise(async (resolve, reject) => {
 
@@ -998,8 +1337,10 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @returns {Promise<SyncMessageResult[]>} */
     async getWaitingMessages() {
 
+        /** @type {SyncMessageResult[]} */
         const waitingMessages = [];
 
         while(true){
@@ -1019,6 +1360,7 @@ class Connection extends EventEmitter {
 
     }
 
+    /** @returns {Promise<{epochSecs: number}>} */
     getDeviceTime() {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1050,6 +1392,10 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {EpochSeconds} epochSecs
+     * @returns {Promise<void>}
+     */
     setDeviceTime(epochSecs) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1081,10 +1427,15 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @returns {Promise<void>} */
     async syncDeviceTime() {
         await this.setDeviceTime(Math.floor(Date.now() / 1000));
     }
 
+    /**
+     * @param {Uint8Array} advertPacketBytes
+     * @returns {Promise<void>}
+     */
     importContact(advertPacketBytes) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1116,6 +1467,10 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {Uint8Array | null} [pubKey]
+     * @returns {Promise<ExportContactResponse>}
+     */
     exportContact(pubKey = null) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1147,6 +1502,10 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {Uint8Array} pubKey
+     * @returns {Promise<void>}
+     */
     shareContact(pubKey) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1178,6 +1537,10 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {Uint8Array} pubKey
+     * @returns {Promise<void>}
+     */
     removeContact(pubKey) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1209,6 +1572,18 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {Uint8Array} publicKey
+     * @param {number} type
+     * @param {number} flags
+     * @param {number} outPathLen
+     * @param {Uint8Array} outPath
+     * @param {string} advName
+     * @param {EpochSeconds} lastAdvert
+     * @param {number} advLat
+     * @param {number} advLon
+     * @returns {Promise<void>}
+     */
     addOrUpdateContact(publicKey, type, flags, outPathLen, outPath, advName, lastAdvert, advLat, advLon) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1240,6 +1615,11 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {Contact} contact
+     * @param {Uint8Array} path
+     * @returns {Promise<void>}
+     */
     setContactPath(contact, path) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1266,6 +1646,10 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {Uint8Array} pubKey
+     * @returns {Promise<void>}
+     */
     resetPath(pubKey) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1297,6 +1681,7 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @returns {Promise<void>} */
     reboot() {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1325,6 +1710,7 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @returns {Promise<BatteryVoltageResponse>} */
     getBatteryVoltage() {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1356,6 +1742,10 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {number} appTargetVer
+     * @returns {Promise<DeviceInfo>}
+     */
     deviceQuery(appTargetVer) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1387,6 +1777,7 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @returns {Promise<PrivateKeyResponse>} */
     exportPrivateKey() {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1429,6 +1820,10 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {Uint8Array} privateKey
+     * @returns {Promise<void>}
+     */
     importPrivateKey(privateKey) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1471,6 +1866,12 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {Uint8Array} contactPublicKey
+     * @param {string} password
+     * @param {Milliseconds} [extraTimeoutMillis]
+     * @returns {Promise<LoginSuccessPush>}
+     */
     login(contactPublicKey, password, extraTimeoutMillis = 1000) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1537,6 +1938,11 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {Uint8Array} contactPublicKey
+     * @param {Milliseconds} [extraTimeoutMillis]
+     * @returns {Promise<RepeaterStats>}
+     */
     getStatus(contactPublicKey, extraTimeoutMillis = 1000) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1625,6 +2031,11 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {Uint8Array} contactPublicKey
+     * @param {Milliseconds} [extraTimeoutMillis]
+     * @returns {Promise<TelemetryResponsePush>}
+     */
     getTelemetry(contactPublicKey, extraTimeoutMillis = 1000) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1692,6 +2103,12 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {Uint8Array} contactPublicKey
+     * @param {Uint8Array} requestCodeAndParams
+     * @param {Milliseconds} [extraTimeoutMillis]
+     * @returns {Promise<Uint8Array>}
+     */
     sendBinaryRequest(contactPublicKey, requestCodeAndParams, extraTimeoutMillis = 1000) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1761,7 +2178,12 @@ class Connection extends EventEmitter {
         });
     }
 
-    // @deprecated migrate to using tracePath instead. pingRepeaterZeroHop will be removed in a future update
+    /**
+     * @deprecated migrate to using tracePath instead. pingRepeaterZeroHop will be removed in a future update
+     * @param {Uint8Array} contactPublicKey
+     * @param {Milliseconds} [timeoutMillis]
+     * @returns {Promise<{rtt: number, snr: number, rssi: number}>}
+     */
     pingRepeaterZeroHop(contactPublicKey, timeoutMillis) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1844,6 +2266,10 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {number} channelIdx
+     * @returns {Promise<ChannelInfo>}
+     */
     getChannel(channelIdx) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1875,6 +2301,12 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {number} channelIdx
+     * @param {string} name
+     * @param {Uint8Array} secret
+     * @returns {Promise<void>}
+     */
     setChannel(channelIdx, name, secret) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1906,10 +2338,15 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {number} channelIdx
+     * @returns {Promise<void>}
+     */
     async deleteChannel(channelIdx) {
         return await this.setChannel(channelIdx, "", new Uint8Array(16));
     }
 
+    /** @returns {Promise<ChannelInfo[]>} */
     getChannels() {
         return new Promise(async (resolve, reject) => {
 
@@ -1935,6 +2372,10 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {string} name
+     * @returns {Promise<ChannelInfo | undefined>}
+     */
     async findChannelByName(name) {
 
         // get channels
@@ -1947,6 +2388,10 @@ class Connection extends EventEmitter {
 
     }
 
+    /**
+     * @param {Uint8Array} secret
+     * @returns {Promise<ChannelInfo | undefined>}
+     */
     async findChannelBySecret(secret) {
 
         // get channels
@@ -1959,6 +2404,10 @@ class Connection extends EventEmitter {
 
     }
 
+    /**
+     * @param {Uint8Array} data
+     * @returns {Promise<Uint8Array>}
+     */
     async sign(data) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -2048,6 +2497,11 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {Uint8Array} path
+     * @param {Milliseconds} [extraTimeoutMillis]
+     * @returns {Promise<TraceDataResult>}
+     */
     tracePath(path, extraTimeoutMillis = 0) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -2114,6 +2568,10 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * @param {number} manualAddContacts
+     * @returns {Promise<void>}
+     */
     setOtherParams(manualAddContacts) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -2145,21 +2603,28 @@ class Connection extends EventEmitter {
         });
     }
 
+    /** @returns {Promise<void>} */
     async setAutoAddContacts() {
-        return await this.setOtherParams(false);
+        return await this.setOtherParams(0);
     }
 
+    /** @returns {Promise<void>} */
     async setManualAddContacts() {
-        return await this.setOtherParams(true);
+        return await this.setOtherParams(1);
     }
 
-    // REQ_TYPE_GET_NEIGHBOURS from Repeater role
-    // https://github.com/meshcore-dev/MeshCore/pull/833
-    // Repeater must be running firmware v1.9.0+
+    /**
+     * @param {Uint8Array} publicKey
+     * @param {number} [count]
+     * @param {number} [offset]
+     * @param {number} [orderBy] 0=newest_to_oldest, 1=oldest_to_newest, 2=strongest_to_weakest, 3=weakest_to_strongest
+     * @param {number} [pubKeyPrefixLength]
+     * @returns {Promise<NeighboursResult>}
+     */
     async getNeighbours(publicKey,
         count = 10,
         offset = 0,
-        orderBy = 0, // 0=newest_to_oldest, 1=oldest_to_newest, 2=strongest_to_weakest, 3=weakest_to_strongest
+        orderBy = 0,
         pubKeyPrefixLength = 8,
     ) {
 

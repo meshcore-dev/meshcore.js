@@ -1,5 +1,7 @@
 import BufferReader from "./buffer_reader.js";
 
+/** @typedef {import("./types.js").CayenneTelemetryEntry} CayenneTelemetryEntry */
+
 class CayenneLpp {
 
     static LPP_DIGITAL_INPUT = 0;         // 1 byte
@@ -30,9 +32,14 @@ class CayenneLpp {
     static LPP_SWITCH = 142;              // 1 byte, 0/1
     static LPP_POLYLINE = 240;            // 1 byte size, 1 byte delta factor, 3 byte lon/lat 0.0001° * factor, n (size-8) bytes deltas
 
+    /**
+     * @param {Uint8Array} bytes
+     * @returns {CayenneTelemetryEntry[]}
+     */
     static parse(bytes) {
 
         const buffer = new BufferReader(bytes);
+        /** @type {CayenneTelemetryEntry[]} */
         const telemetry = [];
 
         while(buffer.getRemainingBytesCount() >= 2){ // need at least 2 more bytes to get channel and type
@@ -48,7 +55,6 @@ class CayenneLpp {
             switch(type){
                 case this.LPP_GENERIC_SENSOR: {
                     const value = buffer.readUInt32BE();
-                    // console.log(`[CayenneLpp] parsed LPP_GENERIC_SENSOR=${value}`);
                     telemetry.push({
                         "channel": channel,
                         "type": type,
@@ -58,7 +64,6 @@ class CayenneLpp {
                 }
                 case this.LPP_LUMINOSITY: {
                     const lux = buffer.readInt16BE();
-                    // console.log(`[CayenneLpp] parsed LPP_LUMINOSITY=${lux}`);
                     telemetry.push({
                         "channel": channel,
                         "type": type,
@@ -68,7 +73,6 @@ class CayenneLpp {
                 }
                 case this.LPP_PRESENCE: {
                     const presence = buffer.readUInt8();
-                    // console.log(`[CayenneLpp] parsed LPP_PRESENCE=${presence}`);
                     telemetry.push({
                         "channel": channel,
                         "type": type,
@@ -78,7 +82,6 @@ class CayenneLpp {
                 }
                 case this.LPP_TEMPERATURE: {
                     const temperature = buffer.readInt16BE() / 10;
-                    // console.log(`[CayenneLpp] parsed LPP_TEMPERATURE=${temperature}`);
                     telemetry.push({
                         "channel": channel,
                         "type": type,
@@ -88,7 +91,6 @@ class CayenneLpp {
                 }
                 case this.LPP_RELATIVE_HUMIDITY: {
                     const relativeHumidity = buffer.readUInt8() / 2;
-                    // console.log(`[CayenneLpp] parsed LPP_RELATIVE_HUMIDITY=${relativeHumidity}`);
                     telemetry.push({
                         "channel": channel,
                         "type": type,
@@ -98,7 +100,6 @@ class CayenneLpp {
                 }
                 case this.LPP_BAROMETRIC_PRESSURE: {
                     const barometricPressure = buffer.readUInt16BE() / 10;
-                    // console.log(`[CayenneLpp] parsed LPP_BAROMETRIC_PRESSURE=${barometricPressure}`);
                     telemetry.push({
                         "channel": channel,
                         "type": type,
@@ -111,7 +112,6 @@ class CayenneLpp {
                     // int16: -327.67v to +327.67v
                     // should be readUInt16BE, but I'm using readInt16BE to allow for negative voltage
                     const voltage = buffer.readInt16BE() / 100;
-                    // console.log(`[CayenneLpp] parsed LPP_VOLTAGE=${voltage}`);
                     telemetry.push({
                         "channel": channel,
                         "type": type,
@@ -124,7 +124,6 @@ class CayenneLpp {
                     // int16: -327.67A to +327.67A
                     // should be readUInt16BE, but I'm using readInt16BE to allow for negative current
                     const current = buffer.readInt16BE() / 1000;
-                    // console.log(`[CayenneLpp] parsed LPP_CURRENT=${current}`);
                     telemetry.push({
                         "channel": channel,
                         "type": type,
@@ -134,7 +133,6 @@ class CayenneLpp {
                 }
                 case this.LPP_PERCENTAGE: {
                     const percentage = buffer.readUInt8();
-                    // console.log(`[CayenneLpp] parsed LPP_PERCENTAGE=${percentage}`);
                     telemetry.push({
                         "channel": channel,
                         "type": type,
@@ -144,7 +142,6 @@ class CayenneLpp {
                 }
                 case this.LPP_CONCENTRATION: {
                     const concentration = buffer.readUInt16BE();
-                    // console.log(`[CayenneLpp] parsed LPP_CONCENTRATION=${concentration}`);
                     telemetry.push({
                         "channel": channel,
                         "type": type,
@@ -154,7 +151,6 @@ class CayenneLpp {
                 }
                 case this.LPP_POWER: {
                     const power = buffer.readUInt16BE();
-                    // console.log(`[CayenneLpp] parsed LPP_POWER=${power}`);
                     telemetry.push({
                         "channel": channel,
                         "type": type,
@@ -166,7 +162,6 @@ class CayenneLpp {
                     const latitude = buffer.readInt24BE() / 10000;
                     const longitude = buffer.readInt24BE() / 10000;
                     const altitude = buffer.readInt24BE() / 100;
-                    // console.log(`[CayenneLpp] parsed LPP_GPS=${latitude},${longitude},${altitude}`);
                     telemetry.push({
                         "channel": channel,
                         "type": type,
@@ -180,7 +175,6 @@ class CayenneLpp {
                 }
                 // todo support all telemetry types, otherwise if an unknown is given, we can't read other telemetry after it
                 default: {
-                    // console.log(`[CayenneLpp] unsupported type: ${type}`);
                     return telemetry;
                 }
             }

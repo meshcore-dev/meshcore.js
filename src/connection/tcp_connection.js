@@ -5,13 +5,19 @@ import Connection from "./connection.js";
 
 class TCPConnection extends Connection {
 
+    /**
+     * @param {string} host
+     * @param {number} port
+     */
     constructor(host, port) {
         super();
         this.host = host;
         this.port = port;
+        /** @type {number[]} */
         this.readBuffer = [];
     }
 
+    /** @returns {Promise<void>} */
     async connect() {
 
         // note: net module is only available in NodeJS, you shouldn't use TCPConnection from a web browser
@@ -21,7 +27,7 @@ class TCPConnection extends Connection {
         this.socket = new Socket();
 
         // handle received data
-        this.socket.on('data', (data) => {
+        this.socket.on('data', (/** @type {Uint8Array} */ data) => {
             this.onSocketDataReceived(data);
         });
 
@@ -42,6 +48,7 @@ class TCPConnection extends Connection {
 
     }
 
+    /** @param {Uint8Array | number[]} data */
     onSocketDataReceived(data) {
 
         // append received bytes to read buffer
@@ -96,7 +103,7 @@ class TCPConnection extends Connection {
 
     }
 
-    close() {
+    async close() {
         try {
             this.socket.destroy();
         } catch(e) {
@@ -104,10 +111,19 @@ class TCPConnection extends Connection {
         }
     }
 
+    /**
+     * @param {Uint8Array} bytes
+     * @returns {Promise<void>}
+     */
     async write(bytes) {
         this.socket.write(new Uint8Array(bytes));
     }
 
+    /**
+     * @param {number} frameType
+     * @param {Uint8Array} frameData
+     * @returns {Promise<void>}
+     */
     async writeFrame(frameType, frameData) {
 
         // create frame
@@ -125,6 +141,10 @@ class TCPConnection extends Connection {
 
     }
 
+    /**
+     * @param {Uint8Array} data
+     * @returns {Promise<void>}
+     */
     async sendToRadioFrame(data) {
         // write "app to radio" frame 0x3c "<"
         this.emit("tx", data);

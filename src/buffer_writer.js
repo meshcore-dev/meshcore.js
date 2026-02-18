@@ -1,13 +1,16 @@
 class BufferWriter {
 
     constructor() {
+        /** @type {number[]} */
         this.buffer = [];
     }
 
+    /** @returns {Uint8Array} */
     toBytes() {
         return new Uint8Array(this.buffer);
     }
 
+    /** @param {Uint8Array | number[]} bytes */
     writeBytes(bytes) {
         this.buffer = [
             ...this.buffer,
@@ -15,12 +18,14 @@ class BufferWriter {
         ];
     }
 
+    /** @param {number} byte */
     writeByte(byte) {
         this.writeBytes([
             byte,
         ]);
     }
 
+    /** @param {number} num */
     writeUInt16LE(num) {
         const bytes = new Uint8Array(2);
         const view = new DataView(bytes.buffer);
@@ -28,6 +33,7 @@ class BufferWriter {
         this.writeBytes(bytes);
     }
 
+    /** @param {number} num */
     writeUInt32LE(num) {
         const bytes = new Uint8Array(4);
         const view = new DataView(bytes.buffer);
@@ -35,6 +41,7 @@ class BufferWriter {
         this.writeBytes(bytes);
     }
 
+    /** @param {number} num */
     writeInt32LE(num) {
         const bytes = new Uint8Array(4);
         const view = new DataView(bytes.buffer);
@@ -42,10 +49,15 @@ class BufferWriter {
         this.writeBytes(bytes);
     }
 
+    /** @param {string} string */
     writeString(string) {
         this.writeBytes(new TextEncoder().encode(string));
     }
 
+    /**
+     * @param {string} string
+     * @param {number} maxLength
+     */
     writeCString(string, maxLength) {
 
         // create buffer of max length
