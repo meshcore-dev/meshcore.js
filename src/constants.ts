@@ -1,19 +1,19 @@
 class Constants {
 
-    static SupportedCompanionProtocolVersion = 1;
+    static readonly SupportedCompanionProtocolVersion = 1 as const;
 
-    static SerialFrameTypes = {
+    static readonly SerialFrameTypes = {
         Incoming: 0x3e, // ">"
         Outgoing: 0x3c, // "<"
-    }
+    } as const;
 
-    static Ble = {
+    static readonly Ble = {
         ServiceUuid: "6E400001-B5A3-F393-E0A9-E50E24DCCA9E",
         CharacteristicUuidRx: "6E400002-B5A3-F393-E0A9-E50E24DCCA9E",
         CharacteristicUuidTx: "6E400003-B5A3-F393-E0A9-E50E24DCCA9E",
-    }
+    } as const;
 
-    static CommandCodes = {
+    static readonly CommandCodes = {
         AppStart: 1,
         SendTxtMsg: 2,
         SendChannelTxtMsg: 3,
@@ -52,9 +52,9 @@ class Constants {
         SendTelemetryReq: 39,
 
         SendBinaryReq: 50,
-    }
+    } as const;
 
-    static ResponseCodes = {
+    static readonly ResponseCodes = {
         Ok: 0, // todo
         Err: 1, // todo
         ContactsStart: 2,
@@ -74,9 +74,9 @@ class Constants {
         ChannelInfo: 18,
         SignStart: 19,
         Signature: 20,
-    }
+    } as const;
 
-    static PushCodes = {
+    static readonly PushCodes = {
         Advert: 0x80, // when companion is set to auto add contacts
         PathUpdated: 0x81,
         SendConfirmed: 0x82,
@@ -90,41 +90,41 @@ class Constants {
         NewAdvert: 0x8A, // when companion is set to manually add contacts
         TelemetryResponse: 0x8B,
         BinaryResponse: 0x8C,
-    }
+    } as const;
 
-    static ErrorCodes = {
+    static readonly ErrorCodes = {
         UnsupportedCmd: 1,
         NotFound: 2,
         TableFull: 3,
         BadState: 4,
         FileIoError: 5,
         IllegalArg: 6,
-    }
+    } as const;
 
-    static AdvType = {
+    static readonly AdvType = {
         None: 0,
         Chat: 1,
         Repeater: 2,
         Room: 3,
-    }
+    } as const;
 
-    static SelfAdvertTypes = {
+    static readonly SelfAdvertTypes = {
         ZeroHop: 0,
         Flood: 1,
-    }
+    } as const;
 
-    static TxtTypes = {
+    static readonly TxtTypes = {
         Plain: 0,
         CliData: 1,
         SignedPlain: 2,
-    }
+    } as const;
 
-    static BinaryRequestTypes = {
+    static readonly BinaryRequestTypes = {
         GetTelemetryData: 0x03, // #define REQ_TYPE_GET_TELEMETRY_DATA 0x03
         GetAvgMinMax: 0x04, // #define REQ_TYPE_GET_AVG_MIN_MAX 0x04
         GetAccessList: 0x05, // #define REQ_TYPE_GET_ACCESS_LIST 0x05
         GetNeighbours: 0x06, // #define REQ_TYPE_GET_NEIGHBOURS 0x06
-    }
+    } as const;
 
 }
 

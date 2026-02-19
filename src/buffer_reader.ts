@@ -1,34 +1,37 @@
 class BufferReader {
 
-    constructor(data) {
+    pointer: number;
+    buffer: Uint8Array;
+
+    constructor(data: ArrayLike<number> | ArrayBuffer) {
         this.pointer = 0;
         this.buffer = new Uint8Array(data);
     }
 
-    getRemainingBytesCount() {
+    getRemainingBytesCount(): number {
         return this.buffer.length - this.pointer;
     }
 
-    readByte() {
+    readByte(): number {
         return this.readBytes(1)[0];
     }
 
-    readBytes(count) {
+    readBytes(count: number): Uint8Array {
         const data = this.buffer.slice(this.pointer, this.pointer + count);
         this.pointer += count;
         return data;
     }
 
-    readRemainingBytes() {
+    readRemainingBytes(): Uint8Array {
         return this.readBytes(this.getRemainingBytesCount());
     }
 
-    readString() {
+    readString(): string {
         return new TextDecoder().decode(this.readRemainingBytes());
     }
 
-    readCString(maxLength) {
-        const value = [];
+    readCString(maxLength: number): string {
+        const value: number[] = [];
         const bytes = this.readBytes(maxLength);
         for(const byte of bytes){
 
@@ -40,63 +43,64 @@ class BufferReader {
             value.push(byte);
 
         }
+        return new TextDecoder().decode(new Uint8Array(value));
     }
 
-    readInt8() {
+    readInt8(): number {
         const bytes = this.readBytes(1);
         const view = new DataView(bytes.buffer);
         return view.getInt8(0);
     }
 
-    readUInt8() {
+    readUInt8(): number {
         const bytes = this.readBytes(1);
         const view = new DataView(bytes.buffer);
         return view.getUint8(0);
     }
 
-    readUInt16LE() {
+    readUInt16LE(): number {
         const bytes = this.readBytes(2);
         const view = new DataView(bytes.buffer);
         return view.getUint16(0, true);
     }
 
-    readUInt16BE() {
+    readUInt16BE(): number {
         const bytes = this.readBytes(2);
         const view = new DataView(bytes.buffer);
         return view.getUint16(0, false);
     }
 
-    readUInt32LE() {
+    readUInt32LE(): number {
         const bytes = this.readBytes(4);
         const view = new DataView(bytes.buffer);
         return view.getUint32(0, true);
     }
 
-    readUInt32BE() {
+    readUInt32BE(): number {
         const bytes = this.readBytes(4);
         const view = new DataView(bytes.buffer);
         return view.getUint32(0, false);
     }
 
-    readInt16LE() {
+    readInt16LE(): number {
         const bytes = this.readBytes(2);
         const view = new DataView(bytes.buffer);
         return view.getInt16(0, true);
     }
 
-    readInt16BE() {
+    readInt16BE(): number {
         const bytes = this.readBytes(2);
         const view = new DataView(bytes.buffer);
         return view.getInt16(0, false);
     }
 
-    readInt32LE() {
+    readInt32LE(): number {
         const bytes = this.readBytes(4);
         const view = new DataView(bytes.buffer);
         return view.getInt32(0, true);
     }
 
-    readInt24BE() {
+    readInt24BE(): number {
 
         // read 24-bit (3 bytes) big endian integer
         var value = (this.readByte() << 16) | (this.readByte() << 8) | this.readByte();

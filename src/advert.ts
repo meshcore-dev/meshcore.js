@@ -1,5 +1,6 @@
 import BufferReader from "./buffer_reader.js";
 import BufferWriter from "./buffer_writer.js";
+import type { ParsedAdvertAppData } from "./types.js";
 
 class Advert {
 
@@ -13,7 +14,13 @@ class Advert {
     static ADV_FEAT2_MASK = 0x40;
     static ADV_NAME_MASK = 0x80;
 
-    constructor(publicKey, timestamp, signature, appData) {
+    publicKey: Uint8Array;
+    timestamp: number;
+    signature: Uint8Array;
+    appData: Uint8Array;
+    parsed: ParsedAdvertAppData;
+
+    constructor(publicKey: Uint8Array, timestamp: number, signature: Uint8Array, appData: Uint8Array) {
         this.publicKey = publicKey;
         this.timestamp = timestamp;
         this.signature = signature;
@@ -21,7 +28,7 @@ class Advert {
         this.parsed = this.parseAppData();
     }
 
-    static fromBytes(bytes) {
+    static fromBytes(bytes: Uint8Array): Advert {
 
         // read bytes
         const bufferReader = new BufferReader(bytes);
@@ -34,16 +41,16 @@ class Advert {
 
     }
 
-    getFlags() {
+    getFlags(): number {
         return this.appData[0];
     }
 
-    getType() {
+    getType(): number {
         const flags = this.getFlags();
         return flags & 0x0F;
     }
 
-    getTypeString() {
+    getTypeString(): string | null {
         const type = this.getType();
         if(type === Advert.ADV_TYPE_NONE) return "NONE";
         if(type === Advert.ADV_TYPE_CHAT) return "CHAT";
@@ -52,7 +59,7 @@ class Advert {
         return null;
     }
 
-    async isVerified() {
+    async isVerified(): Promise<boolean> {
 
         const { ed25519 } = await import("@noble/curves/ed25519");
 
@@ -67,34 +74,34 @@ class Advert {
 
     }
 
-    parseAppData() {
+    parseAppData(): ParsedAdvertAppData {
 
         // read app data
         const bufferReader = new BufferReader(this.appData);
         const flags = bufferReader.readByte();
 
         // parse lat lon
-        var lat = null;
-        var lon = null;
+        var lat: number | null = null;
+        var lon: number | null = null;
         if(flags & Advert.ADV_LATLON_MASK){
             lat = bufferReader.readInt32LE();
             lon = bufferReader.readInt32LE();
         }
 
         // parse feat1
-        var feat1 = null;
+        var feat1: number | null = null;
         if(flags & Advert.ADV_FEAT1_MASK){
             feat1 = bufferReader.readUInt16LE();
         }
 
         // parse feat2
-        var feat2 = null;
+        var feat2: number | null = null;
         if(flags & Advert.ADV_FEAT2_MASK){
             feat2 = bufferReader.readUInt16LE();
         }
 
         // parse name (remainder of app data)
-        var name = null;
+        var name: string | null = null;
         if(flags & Advert.ADV_NAME_MASK){
             name = bufferReader.readString();
         }

@@ -1,9 +1,20 @@
 import Constants from "../constants.js";
 import Connection from "./connection.js";
 
+declare global {
+    interface Navigator {
+        bluetooth: any;
+    }
+}
+
 class WebBleConnection extends Connection {
 
-    constructor(bleDevice) {
+    bleDevice: any;
+    gattServer: any;
+    rxCharacteristic: any;
+    txCharacteristic: any;
+
+    constructor(bleDevice: any) {
         super();
         this.bleDevice = bleDevice;
         this.gattServer = null;
@@ -12,7 +23,7 @@ class WebBleConnection extends Connection {
         this.init();
     }
 
-    static async open() {
+    static async open(): Promise<WebBleConnection | null | undefined> {
 
         // ensure browser supports web bluetooth
         if(!navigator.bluetooth){
@@ -40,7 +51,7 @@ class WebBleConnection extends Connection {
 
     }
 
-    async init() {
+    async init(): Promise<void> {
 
         // listen for ble disconnect
         this.bleDevice.addEventListener("gattserverdisconnected", () => {
@@ -55,18 +66,18 @@ class WebBleConnection extends Connection {
         const characteristics = await service.getCharacteristics();
 
         // find rx characteristic (we write to this one, it's where the radio reads from)
-        this.rxCharacteristic = characteristics.find((characteristic) => {
+        this.rxCharacteristic = characteristics.find((characteristic: any) => {
             return characteristic.uuid.toLowerCase() === Constants.Ble.CharacteristicUuidRx.toLowerCase();
         });
 
         // find tx characteristic (we read this one, it's where the radio writes to)
-        this.txCharacteristic = characteristics.find((characteristic) => {
+        this.txCharacteristic = characteristics.find((characteristic: any) => {
             return characteristic.uuid.toLowerCase() === Constants.Ble.CharacteristicUuidTx.toLowerCase();
         });
 
         // listen for frames from transmitted to us from the ble device
         await this.txCharacteristic.startNotifications();
-        this.txCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
+        this.txCharacteristic.addEventListener('characteristicvaluechanged', (event: any) => {
             const frame = new Uint8Array(event.target.value.buffer);
             this.onFrameReceived(frame);
         });
@@ -76,7 +87,7 @@ class WebBleConnection extends Connection {
 
     }
 
-    async close() {
+    async close(): Promise<void> {
         try {
             this.gattServer?.disconnect();
             this.gattServer = null;
@@ -85,7 +96,7 @@ class WebBleConnection extends Connection {
         }
     }
 
-    async write(bytes) {
+    async write(bytes: Uint8Array): Promise<void> {
         try {
             // fixme: NetworkError: GATT operation already in progress.
             // todo: implement mutex to prevent multiple writes when another write is in progress
@@ -96,7 +107,7 @@ class WebBleConnection extends Connection {
         }
     }
 
-    async sendToRadioFrame(frame) {
+    async sendToRadioFrame(frame: Uint8Array): Promise<void> {
         this.emit("tx", frame);
         await this.write(frame);
     }
