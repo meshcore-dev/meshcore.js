@@ -5,14 +5,19 @@ import Connection from "./connection.js";
 
 class TCPConnection extends Connection {
 
-    constructor(host, port) {
+    host: string;
+    port: number;
+    readBuffer: number[];
+    socket: any;
+
+    constructor(host: string, port: number) {
         super();
         this.host = host;
         this.port = port;
         this.readBuffer = [];
     }
 
-    async connect() {
+    async connect(): Promise<void> {
 
         // note: net module is only available in NodeJS, you shouldn't use TCPConnection from a web browser
         const { Socket } = await import("net");
@@ -21,17 +26,17 @@ class TCPConnection extends Connection {
         this.socket = new Socket();
 
         // handle received data
-        this.socket.on('data', (data) => {
+        this.socket.on('data', (data: Buffer) => {
             this.onSocketDataReceived(data);
         });
 
         // handle errors
-        this.socket.on('error', (error) => {
+        this.socket.on('error', (error: Error) => {
             console.error('Connection Error', error);
         });
 
         // handle socket close
-        this.socket.on('close', (error) => {
+        this.socket.on('close', (error: boolean) => {
             this.onDisconnected();
         });
 
@@ -42,7 +47,7 @@ class TCPConnection extends Connection {
 
     }
 
-    onSocketDataReceived(data) {
+    onSocketDataReceived(data: Buffer): void {
 
         // append received bytes to read buffer
         this.readBuffer = [
@@ -86,7 +91,7 @@ class TCPConnection extends Connection {
                 this.readBuffer = this.readBuffer.slice(requiredLength);
 
                 // handle received frame
-                this.onFrameReceived(frameData);
+                this.onFrameReceived(new Uint8Array(frameData));
 
             } catch(e) {
                 console.error("Failed to process frame", e);
@@ -96,7 +101,7 @@ class TCPConnection extends Connection {
 
     }
 
-    close() {
+    async close(): Promise<void> {
         try {
             this.socket.destroy();
         } catch(e) {
@@ -104,11 +109,11 @@ class TCPConnection extends Connection {
         }
     }
 
-    async write(bytes) {
+    async write(bytes: Uint8Array): Promise<void> {
         this.socket.write(new Uint8Array(bytes));
     }
 
-    async writeFrame(frameType, frameData) {
+    async writeFrame(frameType: number, frameData: Uint8Array): Promise<void> {
 
         // create frame
         const frame = new BufferWriter();
@@ -125,7 +130,7 @@ class TCPConnection extends Connection {
 
     }
 
-    async sendToRadioFrame(data) {
+    async sendToRadioFrame(data: Uint8Array): Promise<void> {
         // write "app to radio" frame 0x3c "<"
         this.emit("tx", data);
         await this.writeFrame(0x3c, data);

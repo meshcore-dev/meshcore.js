@@ -8,6 +8,8 @@ import Constants from "./constants.js";
 import Advert from "./advert.js";
 import Packet from "./packet.js";
 import BufferUtils from "./buffer_utils.js";
+import BufferReader from "./buffer_reader.js";
+import BufferWriter from "./buffer_writer.js";
 import CayenneLpp from "./cayenne_lpp.js";
 
 export {
@@ -21,5 +23,9 @@ export {
     Advert,
     Packet,
     BufferUtils,
+    BufferReader,
+    BufferWriter,
     CayenneLpp,
 };
+
+export type * from "./types.js";

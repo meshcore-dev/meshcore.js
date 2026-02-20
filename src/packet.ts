@@ -27,8 +27,19 @@ class Packet {
     static PAYLOAD_TYPE_TRACE = 0x09;    // trace a path, collecting SNR for each hop
     static PAYLOAD_TYPE_RAW_CUSTOM = 0x0F;    // custom packet as raw bytes, for applications with custom encryption, payloads, etc
 
-    constructor(header, path, payload, transportCode1, transportCode2) {
+    header: number;
+    path: Uint8Array;
+    payload: Uint8Array;
+    transportCode1: number | null;
+    transportCode2: number | null;
+    route_type: number;
+    route_type_string: string | null;
+    payload_type: number;
+    payload_type_string: string | null;
+    payload_version: number;
+    is_marked_do_not_retransmit: boolean;
 
+    constructor(header: number, path: Uint8Array, payload: Uint8Array, transportCode1: number | null, transportCode2: number | null) {
 
         this.header = header;
         this.path = path;
@@ -46,7 +57,7 @@ class Packet {
 
     }
 
-    static fromBytes(bytes) {
+    static fromBytes(bytes: Uint8Array): Packet {
 
         const bufferReader = new BufferReader(bytes);
         const header = bufferReader.readByte();
@@ -56,8 +67,8 @@ class Packet {
         const hasTransportCodes = routeType === Packet.ROUTE_TYPE_TRANSPORT_FLOOD || routeType === Packet.ROUTE_TYPE_TRANSPORT_DIRECT;
 
         // parse transport codes
-        var transportCode1 = null;
-        var transportCode2 = null;
+        var transportCode1: number | null = null;
+        var transportCode2: number | null = null;
         if(hasTransportCodes){
             transportCode1 = bufferReader.readUInt16LE();
             transportCode2 = bufferReader.readUInt16LE();
@@ -71,11 +82,11 @@ class Packet {
 
     }
 
-    getRouteType() {
+    getRouteType(): number {
         return this.header & Packet.PH_ROUTE_MASK;
     }
 
-    getRouteTypeString() {
+    getRouteTypeString(): string | null {
         switch(this.getRouteType()){
             case Packet.ROUTE_TYPE_FLOOD: return "FLOOD";
             case Packet.ROUTE_TYPE_DIRECT: return "DIRECT";
@@ -85,19 +96,19 @@ class Packet {
         }
     }
 
-    isRouteFlood() {
+    isRouteFlood(): boolean {
         return this.getRouteType() === Packet.ROUTE_TYPE_FLOOD;
     }
 
-    isRouteDirect() {
+    isRouteDirect(): boolean {
         return this.getRouteType() === Packet.ROUTE_TYPE_DIRECT;
     }
 
-    getPayloadType() {
+    getPayloadType(): number {
         return (this.header >> Packet.PH_TYPE_SHIFT) & Packet.PH_TYPE_MASK;
     }
 
-    getPayloadTypeString() {
+    getPayloadTypeString(): string | null {
         switch(this.getPayloadType()){
             case Packet.PAYLOAD_TYPE_REQ: return "REQ";
             case Packet.PAYLOAD_TYPE_RESPONSE: return "RESPONSE";
@@ -114,19 +125,19 @@ class Packet {
         }
     }
 
-    getPayloadVer() {
+    getPayloadVer(): number {
         return (this.header >> Packet.PH_VER_SHIFT) & Packet.PH_VER_MASK;
     }
 
-    markDoNotRetransmit() {
+    markDoNotRetransmit(): void {
         this.header = 0xFF;
     }
 
-    isMarkedDoNotRetransmit() {
+    isMarkedDoNotRetransmit(): boolean {
         return this.header === 0xFF;
     }
 
-    parsePayload() {
+    parsePayload(): any {
         switch(this.getPayloadType()){
             case Packet.PAYLOAD_TYPE_PATH: return this.parsePayloadTypePath();
             case Packet.PAYLOAD_TYPE_REQ: return this.parsePayloadTypeReq();
