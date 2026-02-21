@@ -2,15 +2,18 @@ import SerialConnection from "./serial_connection.js";
 
 class NodeJSSerialConnection extends SerialConnection {
 
+    serialPortPath: string;
+    serialPort: any;
+
     /**
      * @param path serial port to connect to, e.g: "/dev/ttyACM0" or "/dev/cu.usbmodem14401"
      */
-    constructor(path) {
+    constructor(path: string) {
         super();
         this.serialPortPath = path;
     }
 
-    async connect() {
+    async connect(): Promise<void> {
 
         // note: serialport module is only available in NodeJS, you shouldn't use NodeJSSerialConnection from a web browser
         const { SerialPort } = await import('serialport');
@@ -30,11 +33,11 @@ class NodeJSSerialConnection extends SerialConnection {
             this.onDisconnected();
         });
 
-        this.serialPort.on("error", function(err) {
+        this.serialPort.on("error", function(err: Error) {
             console.log("SerialPort Error: ", err.message)
         });
 
-        this.serialPort.on("data", async (data) => {
+        this.serialPort.on("data", async (data: Buffer) => {
             await this.onDataReceived(data);
         });
 
@@ -43,7 +46,7 @@ class NodeJSSerialConnection extends SerialConnection {
 
     }
 
-    async close() {
+    async close(): Promise<void> {
         try {
             await this.serialPort.close();
         } catch(e) {
@@ -51,7 +54,7 @@ class NodeJSSerialConnection extends SerialConnection {
         }
     }
 
-    /* override */ async write(bytes) {
+    /* override */ async write(bytes: Uint8Array): Promise<void> {
         this.serialPort.write(bytes);
     }
 

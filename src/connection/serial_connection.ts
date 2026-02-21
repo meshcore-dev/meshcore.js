@@ -5,6 +5,8 @@ import Connection from "./connection.js";
 
 class SerialConnection extends Connection {
 
+    readBuffer: number[];
+
     constructor() {
         super();
         this.readBuffer = [];
@@ -13,11 +15,11 @@ class SerialConnection extends Connection {
         }
     }
 
-    async write(bytes) {
+    async write(bytes: Uint8Array): Promise<void> {
         throw new Error("Not Implemented: write must be implemented by SerialConnection sub class.");
     }
 
-    async writeFrame(frameType, frameData) {
+    async writeFrame(frameType: number, frameData: Uint8Array): Promise<void> {
 
         // create frame
         const frame = new BufferWriter();
@@ -34,18 +36,18 @@ class SerialConnection extends Connection {
 
     }
 
-    async sendToRadioFrame(data) {
+    async sendToRadioFrame(data: Uint8Array): Promise<void> {
         // write "app to radio" frame 0x3c "<"
         this.emit("tx", data);
         await this.writeFrame(0x3c, data);
     }
 
-    async onDataReceived(value) {
+    async onDataReceived(value: ArrayLike<number>): Promise<void> {
 
         // append received bytes to read buffer
         this.readBuffer = [
             ...this.readBuffer,
-            ...value,
+            ...Array.from(value),
         ];
 
         // process read buffer while there is enough bytes for a frame header
@@ -84,7 +86,7 @@ class SerialConnection extends Connection {
                 this.readBuffer = this.readBuffer.slice(requiredLength);
 
                 // handle received frame
-                this.onFrameReceived(frameData);
+                this.onFrameReceived(new Uint8Array(frameData));
 
             } catch(e) {
                 console.error("Failed to process frame", e);

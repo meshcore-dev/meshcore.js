@@ -2,15 +2,23 @@
   "name": "@liamcottle/meshcore.js",
   "version": "1.11.0",
   "description": "",
-  "main": "src/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build"
   },
+  "files": ["dist"],
   "author": "Liam Cottle <liam@liamcottle.com>",
   "license": "MIT",
   "dependencies": {
     "@noble/curves": "^1.8.1",
     "serialport": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
   }
 }
