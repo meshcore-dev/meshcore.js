@@ -1769,6 +1769,13 @@ class Connection extends EventEmitter {
         });
     }
 
+    /**
+     * Set the flood scope to use by provided a 16-byte transport key.
+     * Passing an empty list will clear the scope.
+     * You can use `const transportKey = await TransportKeyUtil.getHashtagRegionKey("#region");` to easily generate keys
+     * @param transportKey Uint8Array 16-byte transport key, can be derived from first 16 bytes of sha256("#region")
+     * @returns {Promise<unknown>}
+     */
     setFloodScope(transportKey) {
         return new Promise(async (resolve, reject) => {
             try {
