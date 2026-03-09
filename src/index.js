@@ -9,7 +9,7 @@ import Advert from "./advert.js";
 import Packet from "./packet.js";
 import BufferUtils from "./buffer_utils.js";
 import CayenneLpp from "./cayenne_lpp.js";
-import MeshCorePath from "./meshore_path.js";
+import MeshCorePath from "./meshcore_path.js";
 import TransportKeyUtil from "./transport_key_util.js";
 
 export {
