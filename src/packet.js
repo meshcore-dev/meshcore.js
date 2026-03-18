@@ -1,6 +1,6 @@
 import BufferReader from "./buffer_reader.js";
 import Advert from "./advert.js";
-import MeshCorePath from "./meshore_path.js";
+import MeshCorePath from "./meshcore_path.js";
 
 class Packet {
 
