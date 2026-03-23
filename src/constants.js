@@ -13,6 +13,10 @@ class Constants {
         CharacteristicUuidTx: "6E400003-B5A3-F393-E0A9-E50E24DCCA9E",
     }
 
+    static DataTypes = {
+        Dev: 0xFFFF, // developer namespace for experimenting with group/channel datagrams and building apps
+    }
+
     static CommandCodes = {
         AppStart: 1,
         SendTxtMsg: 2,
