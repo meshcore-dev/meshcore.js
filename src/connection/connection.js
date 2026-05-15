@@ -331,10 +331,17 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
-    async sendCommandSetOtherParams(manualAddContacts) {
+    async sendCommandSetOtherParams(manualAddContacts, telemetryModeBase = 0, telemetryModeLoc = 0, telemetryModeEnv = 0, advLocPolicy = 0) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SetOtherParams);
-        data.writeByte(manualAddContacts); // 0 or 1
+        data.writeByte(manualAddContacts ? 1 : 0);
+        // firmware packs the three telemetry modes into a single byte:
+        //   bits 0-1 = base, bits 2-3 = loc, bits 4-5 = env
+        const telemetryMode = (telemetryModeBase & 0b11)
+            | ((telemetryModeLoc & 0b11) << 2)
+            | ((telemetryModeEnv & 0b11) << 4);
+        data.writeByte(telemetryMode);
+        data.writeByte(advLocPolicy & 0xFF);
         await this.sendToRadioFrame(data.toBytes());
     }
 
@@ -697,20 +704,42 @@ class Connection extends EventEmitter {
     }
 
     onSelfInfoResponse(bufferReader) {
+        const type = bufferReader.readByte();
+        const txPower = bufferReader.readByte();
+        const maxTxPower = bufferReader.readByte();
+        const publicKey = bufferReader.readBytes(32);
+        const advLat = bufferReader.readInt32LE();
+        const advLon = bufferReader.readInt32LE();
+        const multiAcks = bufferReader.readByte();
+        const advLocPolicy = bufferReader.readByte();
+        const telemetryMode = bufferReader.readByte();
+        const manualAddContacts = bufferReader.readByte();
+        const radioFreq = bufferReader.readUInt32LE();
+        const radioBw = bufferReader.readUInt32LE();
+        const radioSf = bufferReader.readByte();
+        const radioCr = bufferReader.readByte();
+        const name = bufferReader.readString();
         this.emit(Constants.ResponseCodes.SelfInfo, {
-            type: bufferReader.readByte(),
-            txPower: bufferReader.readByte(),
-            maxTxPower: bufferReader.readByte(),
-            publicKey: bufferReader.readBytes(32),
-            advLat: bufferReader.readInt32LE(),
-            advLon: bufferReader.readInt32LE(),
-            reserved: bufferReader.readBytes(3),
-            manualAddContacts: bufferReader.readByte(),
-            radioFreq: bufferReader.readUInt32LE(),
-            radioBw: bufferReader.readUInt32LE(),
-            radioSf: bufferReader.readByte(),
-            radioCr: bufferReader.readByte(),
-            name: bufferReader.readString(),
+            type: type,
+            txPower: txPower,
+            maxTxPower: maxTxPower,
+            publicKey: publicKey,
+            advLat: advLat,
+            advLon: advLon,
+            // kept for backward compatibility — same 3 bytes, now also surfaced individually below
+            reserved: new Uint8Array([multiAcks, advLocPolicy, telemetryMode]),
+            multiAcks: multiAcks,
+            advLocPolicy: advLocPolicy,
+            telemetryMode: telemetryMode,
+            telemetryModeBase: telemetryMode & 0b11,
+            telemetryModeLoc: (telemetryMode >> 2) & 0b11,
+            telemetryModeEnv: (telemetryMode >> 4) & 0b11,
+            manualAddContacts: manualAddContacts,
+            radioFreq: radioFreq,
+            radioBw: radioBw,
+            radioSf: radioSf,
+            radioCr: radioCr,
+            name: name,
         });
     }
 
@@ -2344,7 +2373,22 @@ class Connection extends EventEmitter {
         });
     }
 
-    setOtherParams(manualAddContacts) {
+    // Accepts either the legacy signature `setOtherParams(manualAddContacts)`
+    // or an options object: `{ manualAddContacts, telemetryModeBase, telemetryModeLoc, telemetryModeEnv, advLocPolicy }`.
+    setOtherParams(manualAddContactsOrOpts, telemetryModeBase = 0, telemetryModeLoc = 0, telemetryModeEnv = 0, advLocPolicy = 0) {
+
+        let manualAddContacts;
+        if(typeof manualAddContactsOrOpts === "object" && manualAddContactsOrOpts !== null){
+            const opts = manualAddContactsOrOpts;
+            manualAddContacts = opts.manualAddContacts ?? 0;
+            telemetryModeBase = opts.telemetryModeBase ?? 0;
+            telemetryModeLoc = opts.telemetryModeLoc ?? 0;
+            telemetryModeEnv = opts.telemetryModeEnv ?? 0;
+            advLocPolicy = opts.advLocPolicy ?? 0;
+        } else {
+            manualAddContacts = manualAddContactsOrOpts;
+        }
+
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -2367,7 +2411,7 @@ class Connection extends EventEmitter {
                 this.once(Constants.ResponseCodes.Err, onErr);
 
                 // set other params
-                await this.sendCommandSetOtherParams(manualAddContacts);
+                await this.sendCommandSetOtherParams(manualAddContacts, telemetryModeBase, telemetryModeLoc, telemetryModeEnv, advLocPolicy);
 
             } catch(e) {
                 reject(e);
@@ -2375,12 +2419,42 @@ class Connection extends EventEmitter {
         });
     }
 
+    // Read current SelfInfo and write back all fields with `patch` applied on top.
+    // This is the JS equivalent of python-meshcore's set_other_params_from_infos pattern.
+    async _setOtherParamsPatch(patch) {
+        const info = await this.getSelfInfo();
+        return await this.setOtherParams({
+            manualAddContacts: info.manualAddContacts,
+            telemetryModeBase: info.telemetryModeBase,
+            telemetryModeLoc: info.telemetryModeLoc,
+            telemetryModeEnv: info.telemetryModeEnv,
+            advLocPolicy: info.advLocPolicy,
+            ...patch,
+        });
+    }
+
+    async setTelemetryModeBase(mode) {
+        return await this._setOtherParamsPatch({ telemetryModeBase: mode });
+    }
+
+    async setTelemetryModeLoc(mode) {
+        return await this._setOtherParamsPatch({ telemetryModeLoc: mode });
+    }
+
+    async setTelemetryModeEnv(mode) {
+        return await this._setOtherParamsPatch({ telemetryModeEnv: mode });
+    }
+
+    async setAdvertLocPolicy(policy) {
+        return await this._setOtherParamsPatch({ advLocPolicy: policy });
+    }
+
     async setAutoAddContacts() {
-        return await this.setOtherParams(false);
+        return await this._setOtherParamsPatch({ manualAddContacts: 0 });
     }
 
     async setManualAddContacts() {
-        return await this.setOtherParams(true);
+        return await this._setOtherParamsPatch({ manualAddContacts: 1 });
     }
 
     // REQ_TYPE_GET_NEIGHBOURS from Repeater role

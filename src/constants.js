@@ -137,6 +137,21 @@ class Constants {
         SignedPlain: 2,
     }
 
+    // Telemetry visibility mode for SetOtherParams (per-section: base / loc / env).
+    // Mirrors python-meshcore's TelemetryMode enum (2 bits per section).
+    static TelemetryMode = {
+        Disabled: 0,
+        AlwaysOn: 1,
+        OnRequestOnly: 2,
+        Reserved: 3,
+    }
+
+    // Advertisement location policy for SetOtherParams.
+    static AdvLocPolicy = {
+        None: 0,
+        Share: 1,
+    }
+
     static BinaryRequestTypes = {
         GetTelemetryData: 0x03, // #define REQ_TYPE_GET_TELEMETRY_DATA 0x03
         GetAvgMinMax: 0x04, // #define REQ_TYPE_GET_AVG_MIN_MAX 0x04
