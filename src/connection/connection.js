@@ -3,6 +3,7 @@ import BufferReader from "../buffer_reader.js";
 import Constants from "../constants.js";
 import EventEmitter from "../events.js";
 import BufferUtils from "../buffer_utils.js";
+import CayenneLpp from "../cayenne_lpp.js";
 import Packet from "../packet.js";
 import RandomUtils from "../random_utils.js";
 
@@ -1826,6 +1827,38 @@ class Connection extends EventEmitter {
                 reject(e);
             }
         });
+    }
+
+    // High-level synchronous telemetry request.
+    // Sends REQ_TYPE_GET_TELEMETRY_DATA via sendBinaryReq, waits for the matching
+    // BinaryResponse push (correlated by tag), and decodes the response payload
+    // as Cayenne LPP. Mirrors python-meshcore's req_telemetry_sync.
+    //
+    // contactOrPublicKey: either a contact-like object with a `publicKey`
+    //                    property, or the raw 32-byte public key (Uint8Array
+    //                    or hex string).
+    // timeoutMs:         optional extra wait beyond the firmware's estimated
+    //                    timeout from the Sent response (default 10000ms).
+    async requestTelemetry(contactOrPublicKey, timeoutMs = 10000) {
+
+        // accept a contact object, a Uint8Array, or a hex string
+        let publicKey = contactOrPublicKey;
+        if(publicKey && typeof publicKey === "object" && publicKey.publicKey){
+            publicKey = publicKey.publicKey;
+        }
+        if(typeof publicKey === "string"){
+            publicKey = BufferUtils.hexToBytes(publicKey);
+        }
+
+        // request payload: just the request type byte (no params)
+        const requestData = new Uint8Array([Constants.BinaryRequestTypes.GetTelemetryData]);
+
+        // send + wait for tagged BinaryResponse push
+        const responseData = await this.sendBinaryRequest(publicKey, requestData, timeoutMs);
+
+        // decode Cayenne LPP payload
+        return CayenneLpp.parse(responseData);
+
     }
 
     sendBinaryRequest(contactPublicKey, requestCodeAndParams, extraTimeoutMillis = 1000) {
