@@ -11,7 +11,7 @@ It can also be used in Node.js to connect to MeshCore Companion devices over TCP
 - Web Browser
   - BLE: [WebBleConnection()](./src/connection/web_ble_connection.js)
   - USB/Serial: [WebSerialConnection()](./src/connection/web_serial_connection.js)
-- NodeJS
+- Node.js
   - TCP/Wi-Fi: [TCPConnection("host", "port")](./src/connection/tcp_connection.js)
   - USB/Serial: [NodeJSSerialConnection("/dev/ttyUSB0")](./src/connection/nodejs_serial_connection.js)
 
