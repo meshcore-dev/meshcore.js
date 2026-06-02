@@ -10,7 +10,7 @@
   "author": "Liam Cottle <liam@liamcottle.com>",
   "license": "MIT",
   "dependencies": {
-    "@noble/curves": "^1.8.1",
+    "@noble/curves": "^1.9.7",
     "serialport": "^13.0.0"
   }
 }
