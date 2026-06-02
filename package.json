@@ -1,14 +1,35 @@
 {
   "name": "@liamcottle/meshcore.js",
   "version": "1.13.0",
-  "description": "",
-  "main": "src/index.js",
+  "description": "A JavaScript library for interacting with a MeshCore device running the Companion Radio Firmware.",
+  "keywords": [
+    "meshcore"
+  ],
+  "homepage": "https://github.com/meshcore-dev/meshcore.js#readme",
+  "bugs": {
+    "url": "https://github.com/meshcore-dev/meshcore.js/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meshcore-dev/meshcore.js.git"
+  },
+  "license": "MIT",
+  "author": "Liam Cottle <liam@liamcottle.com>",
   "type": "module",
+  "main": "src/index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "files": [
+    "examples",
+    "src",
+    "index.html",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Liam Cottle <liam@liamcottle.com>",
-  "license": "MIT",
   "dependencies": {
     "@noble/curves": "^1.9.7",
     "serialport": "^13.0.0"
