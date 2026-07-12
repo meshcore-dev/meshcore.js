@@ -1,18 +1,18 @@
 # MeshCore.js
 
-A Javascript library for interacting with a [MeshCore](https://github.com/meshcore-dev/MeshCore) device running the [Companion Radio Firmware](https://github.com/meshcore-dev/MeshCore/blob/main/examples/companion_radio/main.cpp).
+A JavaScript library for interacting with a [MeshCore](https://github.com/meshcore-dev/MeshCore) device running the [Companion Radio Firmware](https://github.com/meshcore-dev/MeshCore/blob/main/examples/companion_radio/main.cpp).
 
 This library can be used in a Web Browser to connect to MeshCore Companion devices over BLE or USB Serial.
 
-It can also be used in NodeJS to connect to MeshCore Companion devices over TCP/WiFi or USB Serial.
+It can also be used in Node.js to connect to MeshCore Companion devices over TCP/Wi-Fi or USB Serial.
 
 ## Supported Connection Methods
 
 - Web Browser
   - BLE: [WebBleConnection()](./src/connection/web_ble_connection.js)
   - USB/Serial: [WebSerialConnection()](./src/connection/web_serial_connection.js)
-- NodeJS
-  - TCP/WiFi: [TCPConnection("host", "port")](./src/connection/tcp_connection.js)
+- Node.js
+  - TCP/Wi-Fi: [TCPConnection("host", "port")](./src/connection/tcp_connection.js)
   - USB/Serial: [NodeJSSerialConnection("/dev/ttyUSB0")](./src/connection/nodejs_serial_connection.js)
 
 ## Install
