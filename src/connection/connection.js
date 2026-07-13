@@ -3,6 +3,7 @@ import BufferReader from "../buffer_reader.js";
 import Constants from "../constants.js";
 import EventEmitter from "../events.js";
 import BufferUtils from "../buffer_utils.js";
+import CayenneLpp from "../cayenne_lpp.js";
 import Packet from "../packet.js";
 import RandomUtils from "../random_utils.js";
 
@@ -331,10 +332,17 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
-    async sendCommandSetOtherParams(manualAddContacts) {
+    async sendCommandSetOtherParams(manualAddContacts, telemetryModeBase = 0, telemetryModeLoc = 0, telemetryModeEnv = 0, advLocPolicy = 0) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SetOtherParams);
-        data.writeByte(manualAddContacts); // 0 or 1
+        data.writeByte(manualAddContacts ? 1 : 0);
+        // firmware packs the three telemetry modes into a single byte:
+        //   bits 0-1 = base, bits 2-3 = loc, bits 4-5 = env
+        const telemetryMode = (telemetryModeBase & 0b11)
+            | ((telemetryModeLoc & 0b11) << 2)
+            | ((telemetryModeEnv & 0b11) << 4);
+        data.writeByte(telemetryMode);
+        data.writeByte(advLocPolicy & 0xFF);
         await this.sendToRadioFrame(data.toBytes());
     }
 
@@ -453,10 +461,28 @@ class Connection extends EventEmitter {
     }
 
     onLoginSuccessPush(bufferReader) {
-        this.emit(Constants.PushCodes.LoginSuccess, {
-            reserved: bufferReader.readByte(), // reserved
-            pubKeyPrefix: bufferReader.readBytes(6), // 6 bytes of public key this login success is from
-        });
+        // MeshCore firmware >= 1.16 emits a 14-byte login-success frame that
+        // (after the leading push code) carries an is_admin flag, the remote's
+        // server timestamp, a granular ACL byte, and the remote's firmware
+        // version level. Older firmware emits only the legacy 8-byte frame
+        // (is_admin hard-coded to 0 by the firmware, no trailing fields), so the
+        // extended fields are parsed only when the bytes are actually present.
+        // See ripplebiz/MeshCore examples/companion_radio/MyMesh.cpp
+        // onContactResponse (RESP_SERVER_LOGIN_OK builder).
+        const isAdmin = bufferReader.readByte(); // byte 1: is_admin (0 on legacy fw)
+        const pubKeyPrefix = bufferReader.readBytes(6); // bytes 2-7: remote pubkey prefix
+        const response = {
+            reserved: isAdmin, // retained for backwards compatibility (this byte was previously treated as reserved)
+            isAdmin: isAdmin,
+            pubKeyPrefix: pubKeyPrefix,
+        };
+        // Trailing fields (firmware >= 1.16): [server_timestamp:u32LE][acl:u8][fw_ver_level:u8]
+        if(bufferReader.getRemainingBytesCount() >= 6){
+            response.serverTimestamp = bufferReader.readUInt32LE(); // bytes 8-11
+            response.aclPermissions = bufferReader.readByte(); // byte 12
+            response.firmwareVerLevel = bufferReader.readByte(); // byte 13
+        }
+        this.emit(Constants.PushCodes.LoginSuccess, response);
     }
 
     onStatusResponsePush(bufferReader) {
@@ -697,20 +723,42 @@ class Connection extends EventEmitter {
     }
 
     onSelfInfoResponse(bufferReader) {
+        const type = bufferReader.readByte();
+        const txPower = bufferReader.readByte();
+        const maxTxPower = bufferReader.readByte();
+        const publicKey = bufferReader.readBytes(32);
+        const advLat = bufferReader.readInt32LE();
+        const advLon = bufferReader.readInt32LE();
+        const multiAcks = bufferReader.readByte();
+        const advLocPolicy = bufferReader.readByte();
+        const telemetryMode = bufferReader.readByte();
+        const manualAddContacts = bufferReader.readByte();
+        const radioFreq = bufferReader.readUInt32LE();
+        const radioBw = bufferReader.readUInt32LE();
+        const radioSf = bufferReader.readByte();
+        const radioCr = bufferReader.readByte();
+        const name = bufferReader.readString();
         this.emit(Constants.ResponseCodes.SelfInfo, {
-            type: bufferReader.readByte(),
-            txPower: bufferReader.readByte(),
-            maxTxPower: bufferReader.readByte(),
-            publicKey: bufferReader.readBytes(32),
-            advLat: bufferReader.readInt32LE(),
-            advLon: bufferReader.readInt32LE(),
-            reserved: bufferReader.readBytes(3),
-            manualAddContacts: bufferReader.readByte(),
-            radioFreq: bufferReader.readUInt32LE(),
-            radioBw: bufferReader.readUInt32LE(),
-            radioSf: bufferReader.readByte(),
-            radioCr: bufferReader.readByte(),
-            name: bufferReader.readString(),
+            type: type,
+            txPower: txPower,
+            maxTxPower: maxTxPower,
+            publicKey: publicKey,
+            advLat: advLat,
+            advLon: advLon,
+            // kept for backward compatibility — same 3 bytes, now also surfaced individually below
+            reserved: new Uint8Array([multiAcks, advLocPolicy, telemetryMode]),
+            multiAcks: multiAcks,
+            advLocPolicy: advLocPolicy,
+            telemetryMode: telemetryMode,
+            telemetryModeBase: telemetryMode & 0b11,
+            telemetryModeLoc: (telemetryMode >> 2) & 0b11,
+            telemetryModeEnv: (telemetryMode >> 4) & 0b11,
+            manualAddContacts: manualAddContacts,
+            radioFreq: radioFreq,
+            radioBw: radioBw,
+            radioSf: radioSf,
+            radioCr: radioCr,
+            name: name,
         });
     }
 
@@ -1799,6 +1847,38 @@ class Connection extends EventEmitter {
         });
     }
 
+    // High-level synchronous telemetry request.
+    // Sends REQ_TYPE_GET_TELEMETRY_DATA via sendBinaryReq, waits for the matching
+    // BinaryResponse push (correlated by tag), and decodes the response payload
+    // as Cayenne LPP. Mirrors python-meshcore's req_telemetry_sync.
+    //
+    // contactOrPublicKey: either a contact-like object with a `publicKey`
+    //                    property, or the raw 32-byte public key (Uint8Array
+    //                    or hex string).
+    // timeoutMs:         optional extra wait beyond the firmware's estimated
+    //                    timeout from the Sent response (default 10000ms).
+    async requestTelemetry(contactOrPublicKey, timeoutMs = 10000) {
+
+        // accept a contact object, a Uint8Array, or a hex string
+        let publicKey = contactOrPublicKey;
+        if(publicKey && typeof publicKey === "object" && publicKey.publicKey){
+            publicKey = publicKey.publicKey;
+        }
+        if(typeof publicKey === "string"){
+            publicKey = BufferUtils.hexToBytes(publicKey);
+        }
+
+        // request payload: just the request type byte (no params)
+        const requestData = new Uint8Array([Constants.BinaryRequestTypes.GetTelemetryData]);
+
+        // send + wait for tagged BinaryResponse push
+        const responseData = await this.sendBinaryRequest(publicKey, requestData, timeoutMs);
+
+        // decode Cayenne LPP payload
+        return CayenneLpp.parse(responseData);
+
+    }
+
     sendBinaryRequest(contactPublicKey, requestCodeAndParams, extraTimeoutMillis = 1000) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -2344,7 +2424,22 @@ class Connection extends EventEmitter {
         });
     }
 
-    setOtherParams(manualAddContacts) {
+    // Accepts either the legacy signature `setOtherParams(manualAddContacts)`
+    // or an options object: `{ manualAddContacts, telemetryModeBase, telemetryModeLoc, telemetryModeEnv, advLocPolicy }`.
+    setOtherParams(manualAddContactsOrOpts, telemetryModeBase = 0, telemetryModeLoc = 0, telemetryModeEnv = 0, advLocPolicy = 0) {
+
+        let manualAddContacts;
+        if(typeof manualAddContactsOrOpts === "object" && manualAddContactsOrOpts !== null){
+            const opts = manualAddContactsOrOpts;
+            manualAddContacts = opts.manualAddContacts ?? 0;
+            telemetryModeBase = opts.telemetryModeBase ?? 0;
+            telemetryModeLoc = opts.telemetryModeLoc ?? 0;
+            telemetryModeEnv = opts.telemetryModeEnv ?? 0;
+            advLocPolicy = opts.advLocPolicy ?? 0;
+        } else {
+            manualAddContacts = manualAddContactsOrOpts;
+        }
+
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -2367,7 +2462,7 @@ class Connection extends EventEmitter {
                 this.once(Constants.ResponseCodes.Err, onErr);
 
                 // set other params
-                await this.sendCommandSetOtherParams(manualAddContacts);
+                await this.sendCommandSetOtherParams(manualAddContacts, telemetryModeBase, telemetryModeLoc, telemetryModeEnv, advLocPolicy);
 
             } catch(e) {
                 reject(e);
@@ -2375,12 +2470,42 @@ class Connection extends EventEmitter {
         });
     }
 
+    // Read current SelfInfo and write back all fields with `patch` applied on top.
+    // This is the JS equivalent of python-meshcore's set_other_params_from_infos pattern.
+    async _setOtherParamsPatch(patch) {
+        const info = await this.getSelfInfo();
+        return await this.setOtherParams({
+            manualAddContacts: info.manualAddContacts,
+            telemetryModeBase: info.telemetryModeBase,
+            telemetryModeLoc: info.telemetryModeLoc,
+            telemetryModeEnv: info.telemetryModeEnv,
+            advLocPolicy: info.advLocPolicy,
+            ...patch,
+        });
+    }
+
+    async setTelemetryModeBase(mode) {
+        return await this._setOtherParamsPatch({ telemetryModeBase: mode });
+    }
+
+    async setTelemetryModeLoc(mode) {
+        return await this._setOtherParamsPatch({ telemetryModeLoc: mode });
+    }
+
+    async setTelemetryModeEnv(mode) {
+        return await this._setOtherParamsPatch({ telemetryModeEnv: mode });
+    }
+
+    async setAdvertLocPolicy(policy) {
+        return await this._setOtherParamsPatch({ advLocPolicy: policy });
+    }
+
     async setAutoAddContacts() {
-        return await this.setOtherParams(false);
+        return await this._setOtherParamsPatch({ manualAddContacts: 0 });
     }
 
     async setManualAddContacts() {
-        return await this.setOtherParams(true);
+        return await this._setOtherParamsPatch({ manualAddContacts: 1 });
     }
 
     // REQ_TYPE_GET_NEIGHBOURS from Repeater role
