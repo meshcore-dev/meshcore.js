@@ -461,10 +461,28 @@ class Connection extends EventEmitter {
     }
 
     onLoginSuccessPush(bufferReader) {
-        this.emit(Constants.PushCodes.LoginSuccess, {
-            reserved: bufferReader.readByte(), // reserved
-            pubKeyPrefix: bufferReader.readBytes(6), // 6 bytes of public key this login success is from
-        });
+        // MeshCore firmware >= 1.16 emits a 14-byte login-success frame that
+        // (after the leading push code) carries an is_admin flag, the remote's
+        // server timestamp, a granular ACL byte, and the remote's firmware
+        // version level. Older firmware emits only the legacy 8-byte frame
+        // (is_admin hard-coded to 0 by the firmware, no trailing fields), so the
+        // extended fields are parsed only when the bytes are actually present.
+        // See ripplebiz/MeshCore examples/companion_radio/MyMesh.cpp
+        // onContactResponse (RESP_SERVER_LOGIN_OK builder).
+        const isAdmin = bufferReader.readByte(); // byte 1: is_admin (0 on legacy fw)
+        const pubKeyPrefix = bufferReader.readBytes(6); // bytes 2-7: remote pubkey prefix
+        const response = {
+            reserved: isAdmin, // retained for backwards compatibility (this byte was previously treated as reserved)
+            isAdmin: isAdmin,
+            pubKeyPrefix: pubKeyPrefix,
+        };
+        // Trailing fields (firmware >= 1.16): [server_timestamp:u32LE][acl:u8][fw_ver_level:u8]
+        if(bufferReader.getRemainingBytesCount() >= 6){
+            response.serverTimestamp = bufferReader.readUInt32LE(); // bytes 8-11
+            response.aclPermissions = bufferReader.readByte(); // byte 12
+            response.firmwareVerLevel = bufferReader.readByte(); // byte 13
+        }
+        this.emit(Constants.PushCodes.LoginSuccess, response);
     }
 
     onStatusResponsePush(bufferReader) {
