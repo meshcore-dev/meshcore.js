@@ -400,6 +400,8 @@ class Connection extends EventEmitter {
             this.onRawDataPush(bufferReader);
         } else if(responseCode === Constants.PushCodes.LoginSuccess){
             this.onLoginSuccessPush(bufferReader);
+        } else if(responseCode === Constants.PushCodes.LoginFail){
+            this.onLoginFailPush(bufferReader);
         } else if(responseCode === Constants.PushCodes.StatusResponse){
             this.onStatusResponsePush(bufferReader);
         } else if(responseCode === Constants.PushCodes.LogRxData){
@@ -456,6 +458,13 @@ class Connection extends EventEmitter {
         this.emit(Constants.PushCodes.LoginSuccess, {
             reserved: bufferReader.readByte(), // reserved
             pubKeyPrefix: bufferReader.readBytes(6), // 6 bytes of public key this login success is from
+        });
+    }
+
+    onLoginFailPush(bufferReader) {
+        this.emit(Constants.PushCodes.LoginFail, {
+            reserved: bufferReader.readByte(), // reserved
+            pubKeyPrefix: bufferReader.readBytes(6), // 6 bytes of public key this login fail is from
         });
     }
 

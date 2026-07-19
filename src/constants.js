@@ -101,7 +101,7 @@ class Constants {
         MsgWaiting: 0x83,
         RawData: 0x84,
         LoginSuccess: 0x85,
-        LoginFail: 0x86, // not usable yet
+        LoginFail: 0x86,
         StatusResponse: 0x87,
         LogRxData: 0x88,
         TraceData: 0x89,
