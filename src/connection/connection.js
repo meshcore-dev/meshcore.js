@@ -338,6 +338,14 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    async sendCommandSetPathHashMode(mode) {
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.SetPathHashMode); // CMD_SET_PATH_HASH_MODE (companion_radio v1.14+)
+        data.writeByte(0);
+        data.writeByte(mode);
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
     onFrameReceived(frame) {
 
         // emit received frame
@@ -582,11 +590,30 @@ class Connection extends EventEmitter {
     }
 
     onDeviceInfoResponse(bufferReader) {
+        const firmwareVer = bufferReader.readInt8();
+        bufferReader.readBytes(6); // max contacts / channels (v3+)
+        const firmware_build_date = bufferReader.readCString(12);
+        const manufacturerModel = bufferReader.readCString(40);
+        const remaining = bufferReader.getRemainingBytesCount();
+        let firmwareVersion = null;
+        let clientRepeat = null;
+        let pathHashMode = null;
+        if (remaining >= 20) {
+            firmwareVersion = bufferReader.readCString(20);
+        }
+        if (bufferReader.getRemainingBytesCount() >= 1) {
+            clientRepeat = bufferReader.readByte();
+        }
+        if (bufferReader.getRemainingBytesCount() >= 1) {
+            pathHashMode = bufferReader.readByte();
+        }
         this.emit(Constants.ResponseCodes.DeviceInfo, {
-            firmwareVer: bufferReader.readInt8(),
-            reserved: bufferReader.readBytes(6), // reserved
-            firmware_build_date: bufferReader.readCString(12), // eg. "19 Feb 2025"
-            manufacturerModel: bufferReader.readString(), // remainder of frame
+            firmwareVer: firmwareVer,
+            firmware_build_date: firmware_build_date,
+            manufacturerModel: manufacturerModel,
+            firmwareVersion: firmwareVersion,
+            clientRepeat: clientRepeat,
+            pathHashMode: pathHashMode,
         });
     }
 
@@ -2368,6 +2395,37 @@ class Connection extends EventEmitter {
 
                 // set other params
                 await this.sendCommandSetOtherParams(manualAddContacts);
+
+            } catch(e) {
+                reject(e);
+            }
+        });
+    }
+
+    setPathHashMode(mode) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                // resolve promise when we receive ok
+                const onOk = () => {
+                    this.off(Constants.ResponseCodes.Ok, onOk);
+                    this.off(Constants.ResponseCodes.Err, onErr);
+                    resolve();
+                }
+
+                // reject promise when we receive err
+                const onErr = () => {
+                    this.off(Constants.ResponseCodes.Ok, onOk);
+                    this.off(Constants.ResponseCodes.Err, onErr);
+                    reject();
+                }
+
+                // listen for events
+                this.once(Constants.ResponseCodes.Ok, onOk);
+                this.once(Constants.ResponseCodes.Err, onErr);
+
+                // set path hash mode
+                await this.sendCommandSetPathHashMode(mode);
 
             } catch(e) {
                 reject(e);
