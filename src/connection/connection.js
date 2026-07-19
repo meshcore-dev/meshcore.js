@@ -231,7 +231,10 @@ class Connection extends EventEmitter {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SendLogin);
         data.writeBytes(publicKey); // 32 bytes - id of repeater or room server
-        data.writeString(password); // password is remainder of frame, max 15 characters
+        // Empty password = read-only ACL (0 bytes, matches official Android). Non-empty uses writeString.
+        if (password.length > 0) {
+            data.writeString(password); // password is remainder of frame, max 15 characters
+        }
         await this.sendToRadioFrame(data.toBytes());
     }
 
