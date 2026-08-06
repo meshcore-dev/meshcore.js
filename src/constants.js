@@ -87,6 +87,8 @@ class Constants {
         DeviceInfo: 13,
         PrivateKey: 14,
         Disabled: 15,
+        ContactMsgRecvV3: 16, // same as ContactMsgRecv, prefixed with snr + 2 reserved bytes
+        ChannelMsgRecvV3: 17, // same as ChannelMsgRecv, prefixed with snr + 2 reserved bytes
         ChannelInfo: 18,
         SignStart: 19,
         Signature: 20,

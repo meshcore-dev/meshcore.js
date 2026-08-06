@@ -358,8 +358,12 @@ class Connection extends EventEmitter {
             this.onNoMoreMessagesResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.ContactMsgRecv){
             this.onContactMsgRecvResponse(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.ContactMsgRecvV3){
+            this.onContactMsgRecvResponse(bufferReader, true);
         } else if(responseCode === Constants.ResponseCodes.ChannelMsgRecv){
             this.onChannelMsgRecvResponse(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.ChannelMsgRecvV3){
+            this.onChannelMsgRecvResponse(bufferReader, true);
         } else if(responseCode === Constants.ResponseCodes.ContactsStart){
             this.onContactsStartResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.Contact){
@@ -726,23 +730,46 @@ class Connection extends EventEmitter {
         });
     }
 
-    onContactMsgRecvResponse(bufferReader) {
+    // The firmware emits the V3 variant of a received-message frame when the last
+    // app to send CMD_DEVICE_QUERY declared protocol version >= 3. That state is
+    // global to the device, is only reset on reboot, and the frame layout is baked
+    // in when the message is queued - so a V3 frame can reach us even though we
+    // declare version 1 ourselves. Read the extra header when present, so those
+    // messages are delivered instead of silently dropped as an unhandled frame.
+    readMsgRecvSnr(bufferReader, isV3) {
+
+        if(!isV3){
+            return null;
+        }
+
+        const snr = bufferReader.readInt8() / 4;
+        bufferReader.readBytes(2); // reserved
+
+        return snr;
+
+    }
+
+    onContactMsgRecvResponse(bufferReader, isV3 = false) {
+        const snr = this.readMsgRecvSnr(bufferReader, isV3);
         this.emit(Constants.ResponseCodes.ContactMsgRecv, {
             pubKeyPrefix: bufferReader.readBytes(6),
             pathLen: bufferReader.readByte(),
             txtType: bufferReader.readByte(),
             senderTimestamp: bufferReader.readUInt32LE(),
             text: bufferReader.readString(),
+            snr: snr, // null unless the device sent the V3 frame
         });
     }
 
-    onChannelMsgRecvResponse(bufferReader) {
+    onChannelMsgRecvResponse(bufferReader, isV3 = false) {
+        const snr = this.readMsgRecvSnr(bufferReader, isV3);
         this.emit(Constants.ResponseCodes.ChannelMsgRecv, {
             channelIdx: bufferReader.readInt8(), // reserved (0 for now, ie. 'public')
             pathLen: bufferReader.readByte(), // 0xFF if was sent direct, otherwise hop count for flood-mode
             txtType: bufferReader.readByte(),
             senderTimestamp: bufferReader.readUInt32LE(),
             text: bufferReader.readString(),
+            snr: snr, // null unless the device sent the V3 frame
         });
     }
 
