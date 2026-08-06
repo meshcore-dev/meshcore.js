@@ -1,6 +1,6 @@
 class Constants {
 
-    static SupportedCompanionProtocolVersion = 1;
+    static SupportedCompanionProtocolVersion = 3;
 
     static SerialFrameTypes = {
         Incoming: 0x3e, // ">"
