@@ -357,9 +357,9 @@ class Connection extends EventEmitter {
         } else if(responseCode === Constants.ResponseCodes.NoMoreMessages){
             this.onNoMoreMessagesResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.ContactMsgRecv){
-            this.onContactMsgRecvResponse(bufferReader);
+            this.onContactMsgRecvResponse(bufferReader, false);
         } else if(responseCode === Constants.ResponseCodes.ChannelMsgRecv){
-            this.onChannelMsgRecvResponse(bufferReader);
+            this.onChannelMsgRecvResponse(bufferReader, false);
         } else if(responseCode === Constants.ResponseCodes.ContactsStart){
             this.onContactsStartResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.Contact){
@@ -378,6 +378,10 @@ class Connection extends EventEmitter {
             this.onPrivateKeyResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.Disabled){
             this.onDisabledResponse(bufferReader);
+        } else if(responseCode === Constants.ResponseCodes.ContactMsgRecvV3){
+            this.onContactMsgRecvResponse(bufferReader, true);
+        } else if(responseCode === Constants.ResponseCodes.ChannelMsgRecvV3){
+            this.onChannelMsgRecvResponse(bufferReader, true);
         } else if(responseCode === Constants.ResponseCodes.ChannelInfo){
             this.onChannelInfoResponse(bufferReader);
         } else if(responseCode === Constants.ResponseCodes.SignStart){
@@ -726,24 +730,46 @@ class Connection extends EventEmitter {
         });
     }
 
-    onContactMsgRecvResponse(bufferReader) {
+    onContactMsgRecvResponse(bufferReader, isV3) {
+
+        // read snr from ContactMsgRecvV3
+        var snr = null;
+        if(isV3){
+            snr = bufferReader.readInt8() / 4;
+            var reserved1 = bufferReader.readByte();
+            var reserved2 = bufferReader.readByte();
+        }
+
         this.emit(Constants.ResponseCodes.ContactMsgRecv, {
             pubKeyPrefix: bufferReader.readBytes(6),
             pathLen: bufferReader.readByte(),
             txtType: bufferReader.readByte(),
             senderTimestamp: bufferReader.readUInt32LE(),
             text: bufferReader.readString(),
+            snr: snr,
         });
+
     }
 
-    onChannelMsgRecvResponse(bufferReader) {
+    onChannelMsgRecvResponse(bufferReader, isV3) {
+
+        // read snr from ChannelMsgRecvV3
+        var snr = null;
+        if(isV3){
+            snr = bufferReader.readInt8() / 4;
+            var reserved1 = bufferReader.readByte();
+            var reserved2 = bufferReader.readByte();
+        }
+
         this.emit(Constants.ResponseCodes.ChannelMsgRecv, {
             channelIdx: bufferReader.readInt8(), // reserved (0 for now, ie. 'public')
             pathLen: bufferReader.readByte(), // 0xFF if was sent direct, otherwise hop count for flood-mode
             txtType: bufferReader.readByte(),
             senderTimestamp: bufferReader.readUInt32LE(),
             text: bufferReader.readString(),
+            snr: snr,
         });
+
     }
 
     getSelfInfo(timeoutMillis = null) {
