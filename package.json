@@ -1,6 +1,6 @@
 {
   "name": "@liamcottle/meshcore.js",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "description": "A JavaScript library for interacting with a MeshCore device running the Companion Radio Firmware.",
   "keywords": [
     "meshcore"
