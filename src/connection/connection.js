@@ -218,10 +218,10 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
-    async sendCommandSendRawData(path, rawData) {
+    async sendCommandSendRawData(pathLen, path, rawData) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SendRawData);
-        data.writeByte(path.length);
+        data.writeByte(pathLen);
         data.writeBytes(path);
         data.writeBytes(rawData);
         await this.sendToRadioFrame(data.toBytes());

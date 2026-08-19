@@ -137,6 +137,9 @@
                 <button @click="getStatsPackets" class="border border-gray-500 px-2 bg-gray-100 hover:bg-gray-200 rounded">
                     getStatsPackets
                 </button>
+                <button @click="sendRawData" class="border border-gray-500 px-2 bg-gray-100 hover:bg-gray-200 rounded">
+                    sendRawData
+                </button>
             </div>
         </div>
 
@@ -208,6 +211,8 @@
     import WebSerialConnection from "./src/connection/web_serial_connection.js";
     import WebBleConnection from "./src/connection/web_ble_connection.js";
     import BufferUtils from "./src/buffer_utils.js";
+    import BufferWriter from "./src/buffer_writer.js";
+    import {MeshCorePath} from "./src/index.js";
     Vue.createApp({
         data() {
             return {
@@ -258,6 +263,10 @@
 
                 await this.loadContacts();
 
+                this.connection.on(Constants.ResponseCodes.Err, async (event) => {
+                    console.log("Err", event);
+                });
+
                 this.connection.on(Constants.PushCodes.Advert, async (data) => {
                     console.log("Advert", data);
                     await this.loadContacts();
@@ -281,10 +290,14 @@
                     console.log("ExportContact", event);
                 });
 
-                // this.connection.on(Constants.PushCodes.LogRxData, async (event) => {
-                //     console.log("LogRxData", event)
-                //     console.log(this.bytesToHex(event.raw));
-                // });
+                this.connection.on(Constants.PushCodes.RawData, async (event) => {
+                   console.log("RawData", event);
+                });
+
+                this.connection.on(Constants.PushCodes.LogRxData, async (event) => {
+                    console.log("LogRxData", event)
+                    console.log(this.bytesToHex(event.raw));
+                });
 
             },
             onDisconnected() {
@@ -702,6 +715,28 @@
                 try {
                     const stats = await this.connection.getStatsPackets();
                     console.log(stats);
+                } catch(e) {
+                    console.log(e);
+                }
+            },
+            async sendRawData() {
+                try {
+
+                    // via 2-hops with 3-byte path hashes
+                    const meshCorePath = new MeshCorePath(3, 2, [
+                        [0x93, 0x5c, 0x6b], // 935c6b - Liam's Fence Repeater
+                        [0x75, 0x04, 0x57], // 750457 - Liam's Roof Repeater
+                    ]);
+
+                    // data to send
+                    const buffer = new BufferWriter();
+                    buffer.writeUInt32LE(Math.floor(Date.now() / 1000)); // current timestamp seconds
+
+                    const pathLen = meshCorePath.toPathLen();
+                    const path = meshCorePath.toPath();
+                    await this.connection.sendCommandSendRawData(pathLen, path, buffer.toBytes());
+
+
                 } catch(e) {
                     console.log(e);
                 }

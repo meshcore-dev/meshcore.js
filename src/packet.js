@@ -91,6 +91,12 @@ class Packet {
         return pathLen & 63; // bottom 6-bits only and a maximum of 63
     }
 
+    static compactPathHashSizeAndCount(pathHashSize, pathHashCount) {
+        // path hash size stored in upper 2-bits of uint8_t
+        // path hash count stored in lower 6-bits of uint8_t
+        return ((pathHashSize - 1) << 6) | (pathHashCount & 63);
+    }
+
     getPath() {
         return MeshCorePath.fromPathAndLength(this.path, this.pathLen);
     }

@@ -1,6 +1,7 @@
 import BufferReader from "./buffer_reader.js";
 import HexUtil from "./hex_util.js";
 import Packet from "./packet.js";
+import BufferWriter from "./buffer_writer.js";
 
 class MeshCorePath {
 
@@ -33,6 +34,22 @@ class MeshCorePath {
         }
 
         return new MeshCorePath(pathHashSize, pathHashCount, pathItems);
+
+    }
+
+    toPathLen() {
+        return Packet.compactPathHashSizeAndCount(this.pathHashSize, this.pathHashCount);
+    }
+
+    toPath() {
+
+        // write path items to buffer
+        const bufferWriter = new BufferWriter();
+        for(const pathItem of this.pathItems){
+            bufferWriter.writeBytes(pathItem);
+        }
+
+        return bufferWriter.toBytes();
 
     }
 
