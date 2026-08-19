@@ -119,7 +119,7 @@
                 <button @click="deleteChannel" class="border border-gray-500 px-2 bg-gray-100 hover:bg-gray-200 rounded">
                     DeleteChannel
                 </button>
-                <button @click="sendTrace" class="border border-gray-500 px-2 bg-gray-100 hover:bg-gray-200 rounded">
+                <button @click="sendTrace()" class="border border-gray-500 px-2 bg-gray-100 hover:bg-gray-200 rounded">
                     SendTrace
                 </button>
                 <button @click="setAutoAddContacts" class="border border-gray-500 px-2 bg-gray-100 hover:bg-gray-200 rounded">
@@ -533,12 +533,9 @@
 
             },
             async pingRepeater(contact) {
-                try {
-                    const response = await this.connection.pingRepeaterZeroHop(contact.publicKey);
-                    console.log(response);
-                } catch(e) {
-                    console.log(e);
-                }
+                await this.sendTrace([
+                    contact.publicKey[0], // use first byte of repeater public key
+                ]);
             },
             async reboot() {
                 try {
@@ -583,21 +580,25 @@
                 max = Math.floor(max);
                 return Math.floor(Math.random() * (max - min + 1)) + min;
             },
-            async sendTrace() {
+            async sendTrace(pathBytes) {
 
-                // ask user for path
-                const pathString = prompt("Enter path as hex string eg: 12,3f,4d");
-                if(!pathString){
-                    return;
+                if(pathBytes == null){
+
+                    // ask user for path
+                    const pathString = prompt("Enter path as hex string eg: 12,3f,4d");
+                    if(!pathString){
+                        return;
+                    }
+
+                    // parse provided path
+                    const pathHex = pathString.replaceAll(",", "");
+                    pathBytes = BufferUtils.hexToBytes(pathHex);
+
                 }
-
-                const pathHex = pathString.replaceAll(",", "");
-                const pathBytes = BufferUtils.hexToBytes(pathHex);
-                console.log(pathBytes);
 
                 try {
 
-                    console.log(`TRACE request for path: ${pathString}`);
+                    console.log(`TRACE request for path: ${JSON.stringify(pathBytes)}`);
                     const response = await this.connection.tracePath(pathBytes);
 
                     console.log("TRACE response", response);
