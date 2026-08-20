@@ -498,15 +498,26 @@ class Connection extends EventEmitter {
     onTraceDataPush(bufferReader) {
         const reserved = bufferReader.readByte();
         const pathLen = bufferReader.readUInt8();
+        const flags = bufferReader.readUInt8();
+        const tag = bufferReader.readUInt32LE();
+        const authCode = bufferReader.readUInt32LE();
+        const path_sz = flags & 0x03;
+        const pathHashes = bufferReader.readBytes(pathLen);
+        // SNR count is pathLen >> path_sz (not pathLen); last SNR follows path SNRs.
+        const snrCount = pathLen >> path_sz;
+        const snrBytes = bufferReader.readBytes(snrCount + 1);
+        const pathSnrs = snrBytes.subarray(0, snrCount);
+        const lastSnr =
+            snrBytes.length > snrCount ? (snrBytes[snrCount] & 0xff) / 4 : 0;
         this.emit(Constants.PushCodes.TraceData, {
             reserved: reserved,
             pathLen: pathLen,
-            flags: bufferReader.readUInt8(),
-            tag: bufferReader.readUInt32LE(),
-            authCode: bufferReader.readUInt32LE(),
-            pathHashes: bufferReader.readBytes(pathLen),
-            pathSnrs: bufferReader.readBytes(pathLen),
-            lastSnr: bufferReader.readInt8() / 4,
+            flags: flags,
+            tag: tag,
+            authCode: authCode,
+            pathHashes: pathHashes,
+            pathSnrs: pathSnrs,
+            lastSnr: lastSnr,
         });
     }
 
