@@ -41,6 +41,11 @@ class WebSerialConnection extends SerialConnection {
             baudRate: 115200,
         });
 
+        await serialPort.setSignals({
+            dataTerminalReady: false,
+            requestToSend: false,
+        });
+
         return new WebSerialConnection(serialPort);
 
     }
