@@ -4,10 +4,14 @@ class NodeJSSerialConnection extends SerialConnection {
 
     /**
      * @param path serial port to connect to, e.g: "/dev/ttyACM0" or "/dev/cu.usbmodem14401"
+     * @param bootDelayMs ms to wait after the port opens before handshaking. Set to
+     *        ~2500 for boards that reset on connect (DTR -> RST, e.g. Wio-E5/STM32WL
+     *        devboards). Default 0 preserves the original behaviour.
      */
-    constructor(path) {
+    constructor(path, bootDelayMs = 0) {
         super();
         this.serialPortPath = path;
+        this.bootDelayMs = bootDelayMs;
     }
 
     async connect() {
@@ -23,7 +27,26 @@ class NodeJSSerialConnection extends SerialConnection {
         });
 
         this.serialPort.on("open", async () => {
-           await this.onConnected();
+
+            // De-assert DTR/RTS. On boards that wire DTR -> RST (via a cap), opening
+            // the port asserts DTR and resets the MCU; hold a steady de-asserted state
+            // to avoid further spurious resets. Harmless on native-USB boards.
+            try {
+                this.serialPort.set({ dtr: false, rts: false });
+            } catch(e) {
+                // set() unsupported / failed; ignore
+            }
+
+            // Wait for the device to finish booting before handshaking. The MCU was
+            // reset by the DTR assertion on open; the original immediate onConnected()
+            // raced that boot (~1.2-1.9 s measured on a Wio-E5) and the handshake was
+            // lost -> connection timeout. Default bootDelayMs 0 = original behaviour.
+            if(this.bootDelayMs > 0){
+                await new Promise((resolve) => setTimeout(resolve, this.bootDelayMs));
+            }
+
+            await this.onConnected();
+
         });
 
         this.serialPort.on("close", () => {
