@@ -67,6 +67,8 @@ class Constants {
 
         GetStats: 56,
 
+        SetPathHashMode: 61, // companion_radio v1.14+
+
         SendChannelData: 62,
     }
 
