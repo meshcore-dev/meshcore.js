@@ -5,6 +5,14 @@ import NodeJSSerialConnection from "./connection/nodejs_serial_connection.js";
 import WebSerialConnection from "./connection/web_serial_connection.js";
 import TCPConnection from "./connection/tcp_connection.js";
 import Constants from "./constants.js";
+
+// Frequently-referenced enums re-exported at the top level for convenience.
+const BinaryRequestTypes = Constants.BinaryRequestTypes;
+const TelemetryMode = Constants.TelemetryMode;
+const AdvLocPolicy = Constants.AdvLocPolicy;
+const CommandCodes = Constants.CommandCodes;
+const ResponseCodes = Constants.ResponseCodes;
+const PushCodes = Constants.PushCodes;
 import Advert from "./advert.js";
 import Packet from "./packet.js";
 import BufferUtils from "./buffer_utils.js";
@@ -20,6 +28,12 @@ export {
     WebSerialConnection,
     TCPConnection,
     Constants,
+    BinaryRequestTypes,
+    TelemetryMode,
+    AdvLocPolicy,
+    CommandCodes,
+    ResponseCodes,
+    PushCodes,
     Advert,
     Packet,
     BufferUtils,
