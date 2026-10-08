@@ -24,7 +24,10 @@ class BufferReader {
     }
 
     readString() {
-        return new TextDecoder().decode(this.readRemainingBytes());
+        const bytes = this.readRemainingBytes();
+        const nullIdx = bytes.indexOf(0);
+        const slice = nullIdx >= 0 ? bytes.subarray(0, nullIdx) : bytes;
+        return new TextDecoder().decode(slice);
     }
 
     readCString(maxLength) {
