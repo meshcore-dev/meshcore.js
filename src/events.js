@@ -19,8 +19,10 @@ class EventEmitter {
     off(event, callback) {
 
         // remove callback from listeners for this event
+        // also matches once() wrappers by their original callback, so callers
+        // can deregister a once listener by passing the original callback
         if(this.eventListenersMap.has(event)){
-            const callbacks = this.eventListenersMap.get(event).filter(cb => cb !== callback);
+            const callbacks = this.eventListenersMap.get(event).filter(cb => cb !== callback && cb.originalCallback !== callback);
             this.eventListenersMap.set(event, callbacks);
         }
 
@@ -38,6 +40,9 @@ class EventEmitter {
             setTimeout(() => callback(...data), 0);
 
         };
+
+        // remember which callback this wrapper stands for, so off() can find it
+        internalCallback.originalCallback = callback;
 
         // listen to this event
         this.on(event, internalCallback);
