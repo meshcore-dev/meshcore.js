@@ -260,6 +260,22 @@ class Connection extends EventEmitter {
         await this.sendToRadioFrame(data.toBytes());
     }
 
+    async sendCommandSendAnonReq(publicKey, requestCodeAndParams) {
+        if(!(publicKey instanceof Uint8Array) || publicKey.length !== 32) {
+            throw new TypeError("publicKey must be a 32-byte Uint8Array.");
+        }
+
+        if(!(requestCodeAndParams instanceof Uint8Array) || requestCodeAndParams.length === 0) {
+            throw new TypeError("requestCodeAndParams must be a non-empty Uint8Array.");
+        }
+
+        const data = new BufferWriter();
+        data.writeByte(Constants.CommandCodes.SendAnonReq);
+        data.writeBytes(publicKey);
+        data.writeBytes(requestCodeAndParams);
+        await this.sendToRadioFrame(data.toBytes());
+    }
+
     async sendCommandSetFloodScope(transportKey) {
         const data = new BufferWriter();
         data.writeByte(Constants.CommandCodes.SetFloodScope);
@@ -1913,6 +1929,96 @@ class Connection extends EventEmitter {
         });
     }
 
+    sendAnonRequest(publicKey, requestCodeAndParams) {
+        return new Promise((resolve, reject) => {
+            let acknowledgement = null;
+            let acknowledgementTimeoutHandler = null;
+            let responseTimeoutHandler = null;
+            let settled = false;
+
+            const cleanup = () => {
+                clearTimeout(acknowledgementTimeoutHandler);
+                clearTimeout(responseTimeoutHandler);
+                this.off(Constants.ResponseCodes.Err, onErr);
+                this.off(Constants.ResponseCodes.Sent, onSent);
+                this.off(Constants.PushCodes.BinaryResponse, onBinaryResponsePush);
+                this.off("disconnected", onDisconnected);
+            }
+
+            const finish = (error, result = null) => {
+                if(settled) {
+                    return;
+                }
+
+                settled = true;
+                cleanup();
+
+                if(error) {
+                    reject(error);
+                    return;
+                }
+
+                resolve(result);
+            }
+
+            const onSent = (response) => {
+                if(acknowledgement !== null) {
+                    return;
+                }
+
+                acknowledgement = response;
+                clearTimeout(acknowledgementTimeoutHandler);
+
+                if(response.result !== 0) {
+                    const error = new Error(response.result === 1
+                        ? "Anonymous request was flooded; a direct route is required."
+                        : `Anonymous request returned an unexpected route result: ${response.result}.`);
+                    error.acknowledgement = response;
+                    finish(error);
+                    return;
+                }
+
+                responseTimeoutHandler = setTimeout(() => {
+                    finish(new Error("timeout waiting for anonymous request response"));
+                }, response.estTimeout + 1000);
+            }
+
+            const onBinaryResponsePush = (response) => {
+                if(acknowledgement === null || acknowledgement.expectedAckCrc !== response.tag) {
+                    return;
+                }
+
+                finish(null, {
+                    acknowledgement: acknowledgement,
+                    responseData: response.responseData,
+                });
+            }
+
+            const onErr = (response) => {
+                const error = new Error(`Anonymous request failed with Companion error code ${response.errCode}.`);
+                error.errCode = response.errCode;
+                finish(error);
+            }
+
+            const onDisconnected = () => {
+                finish(new Error("Connection disconnected before anonymous request completed."));
+            }
+
+            this.on(Constants.ResponseCodes.Err, onErr);
+            this.on(Constants.ResponseCodes.Sent, onSent);
+            this.on(Constants.PushCodes.BinaryResponse, onBinaryResponsePush);
+            this.on("disconnected", onDisconnected);
+
+            acknowledgementTimeoutHandler = setTimeout(() => {
+                finish(new Error("timeout waiting for anonymous request acknowledgement"));
+            }, 5000);
+
+            this.sendCommandSendAnonReq(publicKey, requestCodeAndParams).catch((error) => {
+                finish(error);
+            });
+        });
+    }
+
     /**
      * Set the flood scope to use by provided a 16-byte transport key.
      * Passing an empty list will clear the scope.
@@ -2343,6 +2449,49 @@ class Connection extends EventEmitter {
 
     async setManualAddContacts() {
         return await this.setOtherParams(true);
+    }
+
+    async getRegions(publicKey) {
+        const requestCodeAndParams = new Uint8Array([
+            Constants.AnonRequestTypes.GetRegions,
+            0, // zero-hop reply path
+        ]);
+        const { responseData } = await this.sendAnonRequest(publicKey, requestCodeAndParams);
+
+        // The Companion strips the echoed request timestamp before emitting BinaryResponse.
+        if(responseData.length < 4) {
+            throw new Error("Malformed region response: expected repeater clock.");
+        }
+
+        const bufferReader = new BufferReader(responseData);
+        const repeaterClock = bufferReader.readUInt32LE();
+        const regionBytes = bufferReader.readRemainingBytes();
+
+        // Anonymous responses may include NUL padding after the CSV content.
+        let csvLength = regionBytes.length;
+        while(csvLength > 0 && regionBytes[csvLength - 1] === 0) {
+            csvLength--;
+        }
+
+        let regions = [];
+        if(csvLength > 0) {
+            let regionCsv;
+            try {
+                regionCsv = new TextDecoder("utf-8", { fatal: true }).decode(regionBytes.subarray(0, csvLength));
+            } catch(error) {
+                throw new Error("Malformed region response: region names are not valid UTF-8.");
+            }
+
+            regions = regionCsv.split(",");
+            if(regions.some(region => region.length === 0 || region.includes("\0"))) {
+                throw new Error("Malformed region response: region list contains an empty or invalid entry.");
+            }
+        }
+
+        return {
+            regions: regions,
+            repeaterClock: repeaterClock,
+        };
     }
 
     // REQ_TYPE_GET_NEIGHBOURS from Repeater role

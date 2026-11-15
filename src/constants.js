@@ -62,6 +62,7 @@ class Constants {
         SendTelemetryReq: 39,
 
         SendBinaryReq: 50,
+        SendAnonReq: 57,
 
         SetFloodScope: 54,
 
@@ -145,6 +146,10 @@ class Constants {
         GetAvgMinMax: 0x04, // #define REQ_TYPE_GET_AVG_MIN_MAX 0x04
         GetAccessList: 0x05, // #define REQ_TYPE_GET_ACCESS_LIST 0x05
         GetNeighbours: 0x06, // #define REQ_TYPE_GET_NEIGHBOURS 0x06
+    }
+
+    static AnonRequestTypes = {
+        GetRegions: 0x01,
     }
 
 }

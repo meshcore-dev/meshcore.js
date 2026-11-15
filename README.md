@@ -57,6 +57,14 @@ await connection.connect();
 
 There's a few other examples scripts in the [examples](./examples) folder.
 
+### Repeater regions
+
+`connection.getRegions(publicKey)` returns `{ regions, repeaterClock }`. See [get_repeater_regions.js](./examples/get_repeater_regions.js) for a Node.js example.
+
+The minimum verified Companion version is v1.12.0. The repeater must already be in the Companion contact table with a direct route; the library does not add contacts or change routes. Companion v1.11.0 returns `UnsupportedCmd`, and a missing contact on v1.12.0 returns `NotFound`. A flooded route is rejected because repeaters only answer direct region requests.
+
+Serialize remote requests by awaiting each result before starting the next; do not overlap them with `Promise.all()`. A response can omit region names if the repeater's response buffer fills, and the firmware does not report truncation.
+
 ## License
 
 MIT
