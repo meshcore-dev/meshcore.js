@@ -46,6 +46,16 @@ class CayenneLpp {
             }
 
             switch(type){
+                case this.LPP_ANALOG_INPUT: {
+                    const value = buffer.readInt16BE() / 100;
+                    // console.log(`[CayenneLpp] parsed LPP_ANALOG_INPUT=${value}`);
+                    telemetry.push({
+                        "channel": channel,
+                        "type": type,
+                        "value": value,
+                    });
+                    break;
+                }
                 case this.LPP_GENERIC_SENSOR: {
                     const value = buffer.readUInt32BE();
                     // console.log(`[CayenneLpp] parsed LPP_GENERIC_SENSOR=${value}`);
@@ -132,6 +142,16 @@ class CayenneLpp {
                     });
                     break;
                 }
+                case this.LPP_FREQUENCY: {
+                    const frequency = buffer.readUInt32BE();
+                    // console.log(`[CayenneLpp] parsed LPP_FREQUENCY=${frequency}`);
+                    telemetry.push({
+                        "channel": channel,
+                        "type": type,
+                        "value": frequency,
+                    });
+                    break;
+                }
                 case this.LPP_PERCENTAGE: {
                     const percentage = buffer.readUInt8();
                     // console.log(`[CayenneLpp] parsed LPP_PERCENTAGE=${percentage}`);
@@ -139,6 +159,16 @@ class CayenneLpp {
                         "channel": channel,
                         "type": type,
                         "value": percentage,
+                    });
+                    break;
+                }
+                case this.LPP_ALTITUDE: {
+                    const altitude = buffer.readInt16BE();
+                    // console.log(`[CayenneLpp] parsed LPP_ALTITUDE=${altitude}`);
+                    telemetry.push({
+                        "channel": channel,
+                        "type": type,
+                        "value": altitude,
                     });
                     break;
                 }
@@ -159,6 +189,16 @@ class CayenneLpp {
                         "channel": channel,
                         "type": type,
                         "value": power,
+                    });
+                    break;
+                }
+                case this.LPP_DISTANCE: {
+                    const distance = buffer.readUInt32BE() / 1000;
+                    // console.log(`[CayenneLpp] parsed LPP_DISTANCE=${distance}`);
+                    telemetry.push({
+                        "channel": channel,
+                        "type": type,
+                        "value": distance,
                     });
                     break;
                 }
